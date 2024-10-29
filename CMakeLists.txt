@@ -15,7 +15,7 @@ set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project ("TestChamber")
+project ("FloatVarContainer")
 
 # Include sub-projects.
-add_subdirectory ("TestChamber" "./bin/")
+add_subdirectory ("FloatVarContainer" "./bin/")
