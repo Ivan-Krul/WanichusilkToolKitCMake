@@ -18,13 +18,16 @@
 #endif
 
 #ifdef BIT64
-using halfint = int;
+typedef int halfint;
+typedef short quadint;
+
+typedef unsigned int halfuint;
+typedef unsigned short quaduint;
 #elif BIT32
-using halfint = short;
+typedef short quadint;
+typedef char halfint;
+
+typedef unsigned short quaduint;
+typedef unsigned char halfuint;
 #endif
 
-#ifdef BIT64
-using quadint = short;
-#elif BIT32
-using quadint = char;
-#endif

@@ -2,6 +2,7 @@
 #include "define.h"
 
 #include <initializer_list>
+#include <cstring>
 
 namespace FVC {
   // it's _smallarray because it uses the most efficient usage of aligned bytes
@@ -11,30 +12,31 @@ namespace FVC {
   template<typename Type>
   class _smallarray {
   public:
-    _smallarray(unsigned halfint capacity = 0) noexcept;
+    _smallarray(halfuint capacity = 0) noexcept;
     _smallarray(const std::initializer_list<Type>& list) noexcept;
   
     void clear() noexcept;
+    void resize(halfuint new_size) noexcept;
     
     void operator= (const _smallarray& entry) noexcept;
     void operator= (const std::initializer_list<Type>& list) noexcept;
-    Type& operator[] (const unsigned halfint index);
+    Type& operator[] (const halfuint index);
   
-    Type* data() const noexcept;
-    unsigned halfint size() const noexcept;
-    unsigned halfint size() const noexcept;
+    inline Type* data() const noexcept { return mArr; }
+    inline halfuint size() const noexcept { return mSize; }
+    inline halfuint capacity() const noexcept { return mCapacity; }
   
   private:
-    void allocate(halfint new_cap);
+    void allocate(const halfint new_cap);
   
     Type* mArr = nullptr;
     
-    unsigned halfint mSize = 0;
-    unsigned halfint mCapacity = 0;
+    halfuint mSize = 0;
+    halfuint mCapacity = 0;
   };
   
   template<typename Type>
-  _smallarray<Type>::_smallarray(unsigned halfint capacity) noexcept {
+  _smallarray<Type>::_smallarray(halfuint capacity) noexcept {
     if(!capacity) return;
     
     mCapacity = capacity;
@@ -60,6 +62,11 @@ namespace FVC {
   }
   
   template<typename Type>
+  void _smallarray<Type>::resize(halfuint new_size) noexcept {
+    allocate(new_size);
+  }
+  
+  template<typename Type>
   void _smallarray<Type>::operator= (const _smallarray& entry) noexcept {
     mSize = entry.size();
     mCapacity = mSize;
@@ -68,7 +75,8 @@ namespace FVC {
     memcpy(mArr, entry.data(), mSize * sizeof(Type));
   }
   
-  void operator= (const std::initializer_list<Type>& list) noexcept {
+  template<typename Type>
+  void _smallarray<Type>::operator= (const std::initializer_list<Type>& list) noexcept {
     mCapacity = list.size();
     mSize = list.size();
     
@@ -77,7 +85,8 @@ namespace FVC {
     memcpy(mArr, list.data(), mCapacity * sizeof(Type));
   }
   
-  Type& operator[] (const unsigned halfint index) {
+  template<typename Type>
+  Type& _smallarray<Type>::operator[] (const halfuint index) {
     if(index < mSize)
       return mArr[index];
 
@@ -85,17 +94,7 @@ namespace FVC {
   }
   
   template<typename Type>
-  Type* _smallarray<Type>::data() const noexcept {
-    return mArr;
-  }
-  
-  template<typename Type>
-  unsigned halfint _smallarray<Type>::size() const noexcept {
-    return mSize;
-  }
-  
-  template<typename Type>
-  void _smallarray<Type>::allocate(unsigned halfint new_cap) {
+  void _smallarray<Type>::allocate(const halfint new_cap) {
     if(new_cap == mCapacity) return;
     
     if(!new_cap) {
@@ -103,12 +102,16 @@ namespace FVC {
       return;
     }
     
+    if(mCapacity > new_cap) mSize = new_cap;
+    mCapacity = new_cap;
+    
+    Type* arr = new Type[mCapacity];
+    
+    memcpy(arr, mArr, mSize * sizeof(Type));
+    
     if(mArr) delete[] mArr;
     
-    if(mCapacity > new_cap) mSize = new_cap;
-    
-    mCapacity = new_cap;
-    mArr = new Type[mCapacity];
+    mArr = arr;
   }
   
 }
