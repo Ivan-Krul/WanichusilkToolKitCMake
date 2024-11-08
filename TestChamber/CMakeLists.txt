@@ -1,11 +1,10 @@
-﻿# CMakeList.txt : CMake project for CMakeThing, include source and define
+﻿# CMakeList.txt : CMake project for TestChamber, include source and define
 # project specific logic here.
 #
 
 # Collect source and header files
 file(GLOB_RECURSE INCLUDES include/*.h)
 file(GLOB_RECURSE SOURCES src/*.cpp)
-
 
 # Create executable
 add_executable(TestChamber ${SOURCES})
@@ -18,6 +17,10 @@ endforeach()
 
 list(REMOVE_DUPLICATES INCLUDE_DIRS)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+
+# Include local libraries 
+include_directories(${CMAKE_SOURCE_DIR}/FloatVarContainer/include/)
+target_link_libraries(TestChamber FloatVarContainer)
 
 # Check for advanced versions
 if (CMAKE_VERSION VERSION_GREATER 3.12)

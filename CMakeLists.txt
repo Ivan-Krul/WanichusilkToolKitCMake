@@ -2,6 +2,7 @@
 # and include sub-projects here.
 #
 cmake_minimum_required (VERSION 3.8)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -15,7 +16,8 @@ set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project ("FloatVarContainer")
+project ("TestChamber")
 
 # Include sub-projects.
-add_subdirectory ("FloatVarContainer" "./bin/")
+add_subdirectory ("TestChamber" "./bin/")
+add_subdirectory ("FloatVarContainer")
