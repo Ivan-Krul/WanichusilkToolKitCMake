@@ -30,16 +30,16 @@ namespace FVC {
     template<class... Args>
     void emplace(Args&&... args);
   
-    inline Type* data() const noexcept { return mArr; }
+    inline Type* data() const noexcept { return (Type*)mArr; }
     inline halfuint size() const noexcept { return mSize; }
     inline halfuint capacity() const noexcept { return mCapacity; }
   
     ~smallarray() {
-      
     }
   
   private:
-    void allocate(const halfint new_cap);
+    void deallocate();
+    void allocate(const halfuint new_cap);
   
     void* mArr = nullptr;
     
@@ -51,16 +51,19 @@ namespace FVC {
   _smallarray<Type>::_smallarray(halfuint capacity) noexcept {
     if(!capacity) return;
     
+    capacity = AVOID_MAX(capacity);
+    
     mCapacity = capacity;
-    mArr = operator new[](mCapacity * sizeof(Type));
+    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
   }
   
   template<typename Type>
   _smallarray<Type>::_smallarray(const std::initializer_list<Type>& list) noexcept {
     mCapacity = list.size();
-    mSize = list.size();
+    mCapacity = AVOID_MAX(capacity);
+    mSize = mCapacity;
     
-    mArr = operator new[](mCapacity * sizeof(Type));
+    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
     
     memcpy(mArr, list.data(), mCapacity * sizeof(Type));
   }
@@ -91,7 +94,9 @@ namespace FVC {
       allocate(mCapacity + (mCapacity % 8));
     }
     
-    mArr[mSize] = new (&((Type*)mArr)[i]) (element);
+    Type* type = mArr[mSize];
+    *type = element;
+    
     mSize++;
   }
   
@@ -102,8 +107,9 @@ namespace FVC {
       allocate(mCapacity + (mCapacity % 8));
     }
     
+    Type* type = mArr[mSize];
+    new (&type) Type(std::forward<TArgs>(m_args)...);
     
-    mArr[mSize] = element;
     mSize++;
   }
   
@@ -112,7 +118,7 @@ namespace FVC {
     mSize = entry.size();
     mCapacity = mSize;
     operator delete[](mArr);
-    mArr = operator new[](mCapacity * sizeof(Type));
+    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
     memcpy(mArr, entry.data(), mSize * sizeof(Type));
   }
   
@@ -121,7 +127,7 @@ namespace FVC {
     mCapacity = list.size();
     mSize = list.size();
     
-    mArr = operator new[](mCapacity * sizeof(Type));
+    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
     
     memcpy(mArr, list.data(), mCapacity * sizeof(Type));
   }
@@ -143,7 +149,20 @@ namespace FVC {
   }
   
   template<typename Type>
-  void _smallarray<Type>::allocate(const halfint new_cap) {
+  void _smallarray<Type>::deallocate() {
+    if(!mArr) return;
+    
+    if(~mSize == 0) mSize--;
+    
+    for(halfuint i = 0; i < mSize; ) {
+      
+    }
+    
+    operator delete[](mArr);
+  }
+  
+  template<typename Type>
+  void _smallarray<Type>::allocate(const halfuint new_cap) {
     if(new_cap == mCapacity) return;
     
     if(!new_cap) {
@@ -151,10 +170,12 @@ namespace FVC {
       return;
     }
     
+    new_cap = AVOID_MAX(new_cap);
+    
     if(mCapacity > new_cap) mSize = new_cap;
     mCapacity = new_cap;
     
-    Type* arr = operator new[](mCapacity);
+    Type* arr = operator new[](mCapacity, alignof(Type));
     
     memcpy(arr, mArr, mSize * sizeof(Type));
     
