@@ -20,4 +20,4 @@ project ("TestChamber")
 
 # Include sub-projects.
 add_subdirectory ("TestChamber" "./bin/")
-add_subdirectory ("FloatVarContainer")
+add_subdirectory ("FloatVarContainer" "./lib/")

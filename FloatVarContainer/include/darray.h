@@ -23,8 +23,8 @@ namespace FVC {
     
     void operator= (const _smallarray& entry) noexcept;
     void operator= (const std::initializer_list<Type>& list) noexcept;
-    inline Type& operator[] (const halfuint index) noexcept;
-    inline Type& at(const halfuint index) const noexcept;
+    inline Type& operator[] (const halfuint index);
+    inline Type& at(const halfuint index) const;
   
     void push(const Type& element);
     template<class... Args>
@@ -34,12 +34,15 @@ namespace FVC {
     inline halfuint size() const noexcept { return mSize; }
     inline halfuint capacity() const noexcept { return mCapacity; }
   
-    ~smallarray() {
+    ~_smallarray() {
+      clear();
     }
   
   private:
-    void deallocate();
+    inline void deallocate();
     void allocate(const halfuint new_cap);
+  
+    inline void* makeAlloc(const halfuint new_cap);
   
     void* mArr = nullptr;
     
@@ -54,7 +57,7 @@ namespace FVC {
     capacity = AVOID_MAX(capacity);
     
     mCapacity = capacity;
-    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
+    mArr = makeAlloc(mCapacity);
   }
   
   template<typename Type>
@@ -63,14 +66,15 @@ namespace FVC {
     mCapacity = AVOID_MAX(capacity);
     mSize = mCapacity;
     
-    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
+    mArr = makeAlloc(mCapacity);
     
     memcpy(mArr, list.data(), mCapacity * sizeof(Type));
   }
   
   template<typename Type>
   void _smallarray<Type>::clear() noexcept {
-    operator delete[](mArr);
+    deallocate();
+    
     mArr = nullptr;
     mCapacity = 0;
     mSize = 0;
@@ -94,7 +98,7 @@ namespace FVC {
       allocate(mCapacity + (mCapacity % 8));
     }
     
-    Type* type = mArr[mSize];
+    Type* type = ((Type*)mArr)[mSize];
     *type = element;
     
     mSize++;
@@ -107,18 +111,21 @@ namespace FVC {
       allocate(mCapacity + (mCapacity % 8));
     }
     
-    Type* type = mArr[mSize];
-    new (&type) Type(std::forward<TArgs>(m_args)...);
+    Type* type = ((Type*)mArr)[mSize];
+    new (&type) Type(std::forward<Args>(args)...);
     
     mSize++;
   }
   
   template<typename Type>
-  void _smallarray<Type>::operator= (const _smallarray& entry) noexcept {
+  void _smallarray<Type>::operator= (const _smallarray& entry) noexcept {    
+    deallocate();
+    
     mSize = entry.size();
     mCapacity = mSize;
-    operator delete[](mArr);
-    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
+    
+    mArr = makeAlloc(mCapacity);
+    
     memcpy(mArr, entry.data(), mSize * sizeof(Type));
   }
   
@@ -127,13 +134,13 @@ namespace FVC {
     mCapacity = list.size();
     mSize = list.size();
     
-    mArr = operator new[](mCapacity * sizeof(Type), alignof(Type));
+    mArr = makeAlloc(mCapacity);
     
     memcpy(mArr, list.data(), mCapacity * sizeof(Type));
   }
   
   template<typename Type>
-  Type& _smallarray<Type>::operator[] (const halfuint index) noexcept {
+  Type& _smallarray<Type>::operator[] (const halfuint index) {
     if(index < mSize)
       return ((Type*)mArr)[index];
 
@@ -141,7 +148,7 @@ namespace FVC {
   }
   
   template<typename Type>
-  inline Type& at(const halfuint index) const noexcept {
+  inline _smallarray<Type>::Type& at(const halfuint index) const {
     if(index < mSize)
       return ((Type*)mArr)[index];
 
@@ -154,8 +161,8 @@ namespace FVC {
     
     if(~mSize == 0) mSize--;
     
-    for(halfuint i = 0; i < mSize; ) {
-      
+    for(halfuint i = 0; i < mSize; i++) {
+      (((Type*)mArr)[i]).~();
     }
     
     operator delete[](mArr);
@@ -175,13 +182,22 @@ namespace FVC {
     if(mCapacity > new_cap) mSize = new_cap;
     mCapacity = new_cap;
     
-    Type* arr = operator new[](mCapacity, alignof(Type));
+    Type* arr = (Type*)(makeAlloc(mCapacity));
     
     memcpy(arr, mArr, mSize * sizeof(Type));
     
-    if(mArr) operator delete[](mArr);
+    if(mArr) deallocate();
     
     mArr = arr;
+  }
+  
+  template<typename Type>
+  void* _smallarray<Type>::makeAlloc(const halfuint new_cap) {
+#if __cplusplus == 201703L
+    return operator new[](new_cap * sizeof(Type), alignof(Type));
+#else
+    return operator new[](new_cap * sizeof(Type));
+#endif
   }
   
 }
