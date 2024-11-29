@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <cstring>
 #include <new>
+#include <utility>
 
 namespace FVC {
   // it's _smallarray because it uses the most efficient usage of aligned bytes
@@ -40,7 +41,7 @@ namespace FVC {
   
   private:
     inline void deallocate();
-    void allocate(const halfuint new_cap);
+    void allocate(halfuint new_cap);
   
     inline void* makeAlloc(const halfuint new_cap);
   
@@ -104,7 +105,7 @@ namespace FVC {
     mSize++;
   }
   
-  template<typename Type, class... Args>
+  template<class Type> template<class ... Args>
   void _smallarray<Type>::emplace(Args&&... args) {
     if(mSize == mCapacity) {
       mCapacity <<= 1;
@@ -148,7 +149,7 @@ namespace FVC {
   }
   
   template<typename Type>
-  inline _smallarray<Type>::Type& at(const halfuint index) const {
+  Type& _smallarray<Type>::at(const halfuint index) const {
     if(index < mSize)
       return ((Type*)mArr)[index];
 
@@ -162,14 +163,14 @@ namespace FVC {
     if(~mSize == 0) mSize--;
     
     for(halfuint i = 0; i < mSize; i++) {
-      (((Type*)mArr)[i]).~();
+      (((Type*)mArr)[i]).~Type();
     }
     
     operator delete[](mArr);
   }
   
   template<typename Type>
-  void _smallarray<Type>::allocate(const halfuint new_cap) {
+  void _smallarray<Type>::allocate(halfuint new_cap) {
     if(new_cap == mCapacity) return;
     
     if(!new_cap) {
@@ -193,7 +194,7 @@ namespace FVC {
   
   template<typename Type>
   void* _smallarray<Type>::makeAlloc(const halfuint new_cap) {
-#if __cplusplus == 201703L
+#if __cplusplus < 201703L
     return operator new[](new_cap * sizeof(Type), alignof(Type));
 #else
     return operator new[](new_cap * sizeof(Type));

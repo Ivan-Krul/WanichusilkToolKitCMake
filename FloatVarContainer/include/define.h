@@ -24,8 +24,8 @@ typedef short quadint;
 typedef unsigned int halfuint;
 typedef unsigned short quaduint;
 #elif CPU_BIT32
-typedef short quadint;
-typedef char halfint;
+typedef short halfint;
+typedef char quadint;
 
 typedef unsigned short quaduint;
 typedef unsigned char halfuint;

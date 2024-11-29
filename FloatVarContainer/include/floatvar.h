@@ -4,7 +4,7 @@
 #include "darray.h"
 
 namespace FVC {
-  constexpr char gDefaultDataType[] = "void";
+  constexpr char gDefaultDataType[] = "void"
   
   struct FloatVar {
     FloatVar() noexcept;
