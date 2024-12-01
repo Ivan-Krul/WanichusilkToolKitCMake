@@ -5,6 +5,7 @@
 #include <cstring>
 #include <new>
 #include <utility>
+#include <cstdlib>
 
 namespace FVC {
   // it's _smallarray because it uses the most efficient usage of aligned bytes
@@ -16,6 +17,7 @@ namespace FVC {
   public:
     _smallarray(halfuint capacity = 0) noexcept;
     _smallarray(const std::initializer_list<Type>& list) noexcept;
+    _smallarray(const _smallarray& other) noexcept;
   
     inline void clear() noexcept;
     inline void resize(halfuint new_size) noexcept;
@@ -73,6 +75,11 @@ namespace FVC {
   }
   
   template<typename Type>
+  _smallarray<Type>::_smallarray(const _smallarray& other) noexcept
+    : _smallarray<Type>(other.){
+  }
+  
+  template<typename Type>
   void _smallarray<Type>::clear() noexcept {
     deallocate();
     
@@ -108,8 +115,7 @@ namespace FVC {
   template<class Type> template<class ... Args>
   void _smallarray<Type>::emplace(Args&&... args) {
     if(mSize == mCapacity) {
-      mCapacity <<= 1;
-      allocate(mCapacity + (mCapacity % 8));
+      allocate(mCapacity * 2);
     }
     
     Type* type = ((Type*)mArr)[mSize];
@@ -158,22 +164,37 @@ namespace FVC {
   
   template<typename Type>
   void _smallarray<Type>::deallocate() {
-    if(!mArr) return;
+    static bool sIsDestruction = false;
+    struct RecursionGuard {
+        bool& flag;
+        RecursionGuard(bool& f) : flag(f) { flag = true; }
+        ~RecursionGuard() { flag = false; }
+    };
     
-    if(~mSize == 0) mSize--;
+    if(sIsDestruction) return;
+    if(mArr == nullptr || mCapacity == 0) return;
+    if (mSize > mCapacity) {
+      // stupid
+      abort();
+    }
+    
+    RecursionGuard guard(sIsDestruction);
+    
+    mSize = AVOID_MAX(mSize);
     
     for(halfuint i = 0; i < mSize; i++) {
       (((Type*)mArr)[i]).~Type();
     }
     
     operator delete[](mArr);
+    mArr = nullptr;
   }
   
   template<typename Type>
   void _smallarray<Type>::allocate(halfuint new_cap) {
     if(new_cap == mCapacity) return;
     
-    if(!new_cap) {
+    if(new_cap == 0) {
       clear();
       return;
     }
@@ -185,9 +206,10 @@ namespace FVC {
     
     Type* arr = (Type*)(makeAlloc(mCapacity));
     
-    memcpy(arr, mArr, mSize * sizeof(Type));
-    
-    if(mArr) deallocate();
+    if(mArr) {
+      memcpy(arr, mArr, mSize * sizeof(Type));
+      deallocate();
+    }
     
     mArr = arr;
   }
@@ -200,5 +222,4 @@ namespace FVC {
     return operator new[](new_cap * sizeof(Type));
 #endif
   }
-  
 }

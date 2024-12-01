@@ -1,5 +1,7 @@
 #pragma once
 #include <stdint.h>
+#include <string.h>
+#include <memory>
 
 #include "define.h"
 
@@ -13,7 +15,7 @@ namespace FVC {
       char sym[4];
     };
   
-    enum class FormatType {
+    enum class FormatType : char {
       none = 0,
       number = 1,
       string = 2,
@@ -21,34 +23,45 @@ namespace FVC {
     };
   
     FloatVar() noexcept;
-    FloatVar(const char* binary  , const char* name     , DataType data_type);
-    FloatVar(const void* binary  , length_t binary_count, const char* name  , DataType data_type);
-    FloatVar(const FloatVar* list, length_t list_count  , const char* name  , DataType data_type) noexcept;
+    FloatVar(const char* name     , DataType data_type);
+    FloatVar(const char* string  , const char* name     , DataType data_type);
     
+    template<typename T>
+    typename std::enable_if_t<std::is_arithmetic_v<T>> FloatVar(T number  , halfuint binary_count, const char* name  , DataType data_type);
     
-    inline bool     isArray() noexcept const;
-    inline length_t getSize() noexcept const;
+    FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) noexcept;
+    
+    inline FloatVar(const FloatVar& other);
+    
+    inline FormatType       getFormat() noexcept const;
+    
+    inline bool             isArray()   noexcept const;
+    inline bool             isString()  noexcept const;
+    inline bool             isNumber()  noexcept const;
+    inline unsigned halfint getSize()   noexcept const;
     
     ~FloatVar() noexcept;
     
   private:
+    inline void ctol(halfuint& cap);
+    inline void ltoc(halfuint& len);
+  
+    inline void assignname(const char* name);
+  
     char* maName;
     union DataCapsula {
-      
-      char*     aBinary;
+      long long number;
+      char*     aString;
       FloatVar* aList;
     } mData;
     
-    DataType mDataType;
-    
-    uint32_t mNameLength = 0;
+    DataType mDataType = FormatType::none;
     
     struct LengthStruct {
-      length_t length : MAX_BITS - 2;
-      FormatType type : 2;
-    } mLength = 0;
-    
-
+      halfuint length;
+      halfuint capacity : ((MAX_BITS >> 1) - 2);
+      FormatType type  : 2;
+    } mLength = {0};
     
   };
 }
