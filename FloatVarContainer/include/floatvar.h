@@ -2,11 +2,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <memory>
+#include <type_traits>
 
 #include "define.h"
 
 namespace FVC {
-  constexpr int gDefaultDataType = 'void';
+  constexpr int gDefaultDataType = 0x766F6964; // void
   
   class FloatVar {
   public:
@@ -22,25 +23,28 @@ namespace FVC {
       array = 3
     };
   
-    FloatVar() noexcept;
+    FloatVar();
     FloatVar(const char* name     , DataType data_type);
     FloatVar(const char* string  , const char* name     , DataType data_type);
     
     template<typename T>
-    typename std::enable_if_t<std::is_arithmetic_v<T>> FloatVar(T number  , halfuint binary_count, const char* name  , DataType data_type);
+    typename std::enable_if<std::is_arithmetic<T>::value>::type FloatVar(T number  , halfuint binary_count, const char* name  , DataType data_type);
     
-    FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) noexcept;
+    FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type);
     
     inline FloatVar(const FloatVar& other);
     
-    inline FormatType       getFormat() noexcept const;
+    inline FormatType    getFormat() const;
     
-    inline bool             isArray()   noexcept const;
-    inline bool             isString()  noexcept const;
-    inline bool             isNumber()  noexcept const;
-    inline unsigned halfint getSize()   noexcept const;
+    inline bool          isArray()   const;
+    inline bool          isString()  const;
+    inline bool          isNumber()  const;
+    inline halfuint      getSize()   const;
+    inline const char*   getName()   const;
+    template<typename T>
+    typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
-    ~FloatVar() noexcept;
+    ~FloatVar();
     
   private:
     inline void ctol(halfuint& cap);
@@ -50,12 +54,12 @@ namespace FVC {
   
     char* maName;
     union DataCapsula {
-      long long number;
+      length_t  number;
       char*     aString;
       FloatVar* aList;
     } mData;
     
-    DataType mDataType = FormatType::none;
+    DataType mDataType = { .raw = gDefaultDataType };
     
     struct LengthStruct {
       halfuint length;
