@@ -11,7 +11,17 @@ namespace FVC {
   
   class FloatVar {
   public:
-    typedef int DataType;
+    union uDataType {
+      char sym[4];
+      int raw;
+    };
+
+    struct DataType {
+      uDataType dt;
+      inline DataType() { dt.raw = gDefaultDataType; }
+      inline DataType(int raw) { dt.raw = raw; }
+      inline DataType(const char* sym) { memcpy(dt.sym, sym, 4); }
+    };
   
     enum class FormatType : char {
       none = 0,
@@ -37,6 +47,7 @@ namespace FVC {
     inline bool          isNumber()  const { return mLength.type == FormatType::number; }
     inline halfuint      getSize()   const { return mLength.length; }
     inline const char*   getName()   const { return maName; }
+    inline DataType      getType()   const { return mDataType; }
     template<typename T>
     typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
