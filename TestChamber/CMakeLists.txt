@@ -7,7 +7,7 @@ file(GLOB_RECURSE INCLUDES include/*.h)
 file(GLOB_RECURSE SOURCES src/*.cpp)
 
 # Create executable
-add_executable(TestChamber ${SOURCES})
+add_executable(TestChamber ${SOURCES} ${INCLUDES})
 
 # Add include directories (derived from header file locations)
 foreach(dir ${INCLUDES})
@@ -19,7 +19,7 @@ list(REMOVE_DUPLICATES INCLUDE_DIRS)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 
 # Include local libraries 
-include_directories(${CMAKE_SOURCE_DIR}/FloatVarContainer/include/)
+include_directories(${CMAKE_SOURCE_DIR}/FloatVarContainer/src/)
 target_link_libraries(TestChamber FloatVarContainer)
 
 # Check for advanced versions

@@ -1,10 +1,6 @@
 #include "../include/floatvar.h"
 
 namespace FVC {
-  FloatVar::FloatVar() {
-    mDataType.raw = gDefaultDataType;
-  }
-  
   FloatVar::FloatVar(const char* name     , DataType data_type) {
     assignname(name);
     mLength.type = FormatType::none;
@@ -28,20 +24,6 @@ namespace FVC {
     mDataType = data_type;
   }
   
-  template<typename T>
-  typename std::enable_if<std::is_arithmetic<T>::value>::type
-  FloatVar::FloatVar(T number  , halfuint binary_count, const char* name  , DataType data_type) {
-    assignname(name);
-    mLength.type = FormatType::number;
-    
-    mLength.length = sizeof(T);
-    
-    mData.number = 0;
-    memcpy(mData.number, number, sizeof(T));
-    
-    mDataType = data_type;
-  }
-  
   FloatVar::FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) {
     assignname(name);
     mLength.type = FormatType::array;
@@ -60,46 +42,13 @@ namespace FVC {
   
   FloatVar::FloatVar(const FloatVar& other) {
     assignname(other.getName());
-    
-  }
-  
-  FloatVar::FormatType FloatVar::getFormat() const {
-    return LengthStruct.type;
-  }
-  
-  bool FloatVar::isArray() const {
-    return mLength.type == FormatType::array;
-  }
-  
-  bool FloatVar::isString() const {
-    return mLength.type == FormatType::string;
-  }
-  
-  bool FloatVar::isNumber() const {
-    return mLength.type == FormatType::number;
-  }
-  
-  halfuint FloatVar::getSize() const {
-    return mLength.length;
-  }
-  
-  const char* FloatVar::getName() const {
-    return maName;
-  }
-  
-  template<typename T>
-  typename std::enable_if<std::is_arithmetic<T>::value,T>::type FloatVar::getNumber() const {
-    if(isNumber())
-      return *((T*)&mData.number);
-    else
-      return 0;
-  }
+  }        
   
   FloatVar::~FloatVar() {
     if(maName)    delete[] maName;
     
     if(isArray()) delete[] mData.aList;
-    else          delete[] mData.aString;
+    else if(isString()) delete[] mData.aString;
     
   }
   

@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCES src/*.cpp)
 
 
 # Create executable
-add_library(FloatVarContainer ${SOURCES})
+add_library(FloatVarContainer ${SOURCES} ${INCLUDES})
 
 # Add include directories (derived from header file locations)
 foreach(dir ${INCLUDES})

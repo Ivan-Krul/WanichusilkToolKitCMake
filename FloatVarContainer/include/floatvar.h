@@ -11,10 +11,7 @@ namespace FVC {
   
   class FloatVar {
   public:
-    union DataType {
-      int raw;
-      char sym[4];
-    };
+    typedef int DataType;
   
     enum class FormatType : char {
       none = 0,
@@ -23,24 +20,23 @@ namespace FVC {
       array = 3
     };
   
-    FloatVar();
+    FloatVar() = default;
     FloatVar(const char* name     , DataType data_type);
     FloatVar(const char* string  , const char* name     , DataType data_type);
     
-    template<typename T>
-    typename std::enable_if<std::is_arithmetic<T>::value>::type FloatVar(T number  , halfuint binary_count, const char* name  , DataType data_type);
+    template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    FloatVar(T number, const char* name  , DataType data_type);
     
     FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type);
     
     inline FloatVar(const FloatVar& other);
     
-    inline FormatType    getFormat() const;
-    
-    inline bool          isArray()   const;
-    inline bool          isString()  const;
-    inline bool          isNumber()  const;
-    inline halfuint      getSize()   const;
-    inline const char*   getName()   const;
+    inline FormatType    getFormat() const { return mLength.type; }
+    inline bool          isArray()   const { return mLength.type == FormatType::array; }
+    inline bool          isString()  const { return mLength.type == FormatType::string; }
+    inline bool          isNumber()  const { return mLength.type == FormatType::number; }
+    inline halfuint      getSize()   const { return mLength.length; }
+    inline const char*   getName()   const { return maName; }
     template<typename T>
     typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
@@ -59,7 +55,7 @@ namespace FVC {
       FloatVar* aList;
     } mData;
     
-    DataType mDataType = { .raw = gDefaultDataType };
+    DataType mDataType;
     
     struct LengthStruct {
       halfuint length;
@@ -68,5 +64,26 @@ namespace FVC {
     } mLength = {0};
     
   };
+
+  template<typename T, typename>
+  FloatVar::FloatVar(T number, const char* name, DataType data_type) {
+    assignname(name);
+    mLength.type = FormatType::number;
+
+    mLength.length = sizeof(T);
+
+    mData.number = 0;
+    memcpy(&mData.number, (void*)(&number), sizeof(T));
+
+    mDataType = data_type;
+  }
+
+  template<typename T>
+  typename std::enable_if<std::is_arithmetic<T>::value, T>::type FloatVar::getNumber() const {
+    if (isNumber())
+      return *((T*)&mData.number);
+    else
+      return 0;
+  }
 }
 
