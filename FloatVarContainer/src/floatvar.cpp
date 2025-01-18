@@ -12,10 +12,7 @@ namespace FVC {
     mLength.type = FormatType::string;
     
     mLength.length = strlen(string);
-
-    auto cap = mLength.length + 1;
-    ltoc(cap);
-    mLength.capacity = cap;
+    mLength.capacity = mLength.length + 1;
     
     mData.aString = new char[mLength.capacity];
     memcpy(mData.aString, string, mLength.length);    
@@ -29,10 +26,7 @@ namespace FVC {
     mLength.type = FormatType::array;
     
     mLength.length = list_count;
-    
-    auto cap = mLength.length;
-    ltoc(cap);
-    mLength.capacity = cap;
+    mLength.capacity = mLength.length;
     
     mData.aList = new FloatVar[mLength.capacity];
     memcpy(mData.aList, list, mLength.length);
@@ -42,7 +36,22 @@ namespace FVC {
   
   FloatVar::FloatVar(const FloatVar& other) {
     assignname(other.getName());
-  }        
+    mLength = other.mLength;
+    mDataType = other.getType();
+
+    if (other.isArray()) {
+      mData.aList = new FloatVar[mLength.capacity];
+      memcpy(mData.aList, other.mData.aList, mLength.length);
+    }
+    else if (other.isString()) {
+      mData.aString = new char[mLength.capacity];
+      memcpy(mData.aString, other.getString(), mLength.length);
+      mData.aString[mLength.length] = 0;
+    }
+    else if (other.isNumber()) {
+      memcpy(&mData.number, (void*)(&other.mData.number), 8);
+    }
+  }
   
   FloatVar::~FloatVar() {
     if(maName)    delete[] maName;
@@ -50,14 +59,6 @@ namespace FVC {
     if(isArray()) delete[] mData.aList;
     else if(isString()) delete[] mData.aString;
     
-  }
-  
-  void FloatVar::ctol(halfuint& cap) {
-    cap <<= 2;
-  }
-  
-  void FloatVar::ltoc(halfuint& len) {
-    len = (len >> 2) + 1;
   }
   
   void FloatVar::assignname(const char* name) {

@@ -8,10 +8,12 @@ int main(int args, char* argv[]) {
 
   FVC::FloatVar fv(50, "abc", '_tni');
   
-  printf("V: %d\n", fv.getNumber<int>());
-  printf("N: %s\n", fv.getName()); 
-  printf("F: %c\n", (char)fv.getFormat() + 'A');
-  printf("T: %.4s\n", (char*)fv.getType().dt.sym);
+  FVC::FloatVar fv1 = fv;
+
+  printf("V: %d\n", fv1.getNumber<int>());
+  printf("N: %s\n", fv1.getName()); 
+  printf("F: %c\n", (char)fv1.getFormat() + 'A');
+  printf("T: %.4s\n", (char*)fv1.getType().dt.sym);
   
   printf("Hello from WanichusilkToolKit.TestChamber project!\n");
   return 0;
