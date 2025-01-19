@@ -53,6 +53,57 @@ namespace FVC {
     }
   }
   
+  void FloatVar::clear() {
+    if (isArray()) delete[] mData.aList;
+    else if (isString()) delete[] mData.aString;
+    else if (isNumber()) mData.number = 0;
+
+    mLength.capacity = 0;
+    mLength.length = 0;
+  }
+
+  void FloatVar::resize(halfuint new_length) {
+    mLength.length = new_length;
+    if (isArray()) {
+      auto new_arr = new FloatVar[new_length];
+      memcpy(new_arr, mData.aList, std::min(new_length, mLength.capacity));
+
+      delete[] mData.aList;
+
+      mData.aList = new_arr;
+      mLength.capacity = new_length;
+    }
+    else if (isString()) {
+      auto new_str = new char[new_length+1];
+      new_str[new_length] = 0;
+      memcpy(new_str, mData.aString, std::min(new_length, mLength.capacity));
+
+      delete[] mData.aString;
+
+      mData.aString = new_str;
+      mLength.capacity = new_length + 1;
+    }
+  }
+
+  void FloatVar::shrinkToFit() {
+    if (isArray()) {
+      auto new_arr = new FloatVar[mLength.length];
+      memcpy(new_arr, mData.aList, mLength.length);
+
+      delete[] mData.aList;
+
+      mData.aList = new_arr;
+    } else if (isString()) {
+      auto new_str = new char[mLength.length + 1];
+      new_str[mLength.length] = 0;
+      memcpy(new_str, mData.aString, mLength.length);
+
+      delete[] mData.aString;
+
+      mData.aString = new_str;
+    }
+  }
+
   FloatVar::~FloatVar() {
     if(maName)    delete[] maName;
     
@@ -62,10 +113,20 @@ namespace FVC {
   }
   
   void FloatVar::assignname(const char* name) {
+    if (name) delete[] name;
+
     mLength.length = strlen(name);
     maName = new char[mLength.length + 1];
     memcpy(maName, name, mLength.length);
     maName[mLength.length] = 0;
+  }
+
+  void FloatVar::reallocate(halfuint new_length) {
+    switch (mLength.type) {
+    case FormatType::array:
+      // continue here
+      break;
+    }
   }
 
 }

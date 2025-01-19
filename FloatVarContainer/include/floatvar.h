@@ -36,6 +36,7 @@ namespace FVC {
     template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     FloatVar(T number, const char* name  , DataType data_type);
     FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type);
+    // intependant
     FloatVar(const FloatVar& other);
     
     inline bool          isArray()   const { return mLength.type == FormatType::array; }
@@ -49,12 +50,17 @@ namespace FVC {
     template<typename T>
     typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
+    void clear();
+    void resize(halfuint new_length);
+    void shrinkToFit();
+
     ~FloatVar();
     
   private:
     inline void assignname(const char* name);
+    void        reallocate(halfuint new_length);
   
-    char* maName;
+    char* maName = nullptr;
     union DataCapsula {
       length_t  number;
       char*     aString;
@@ -77,6 +83,7 @@ namespace FVC {
     mLength.type = FormatType::number;
 
     mLength.length = sizeof(T);
+    mLength.capacity = sizeof(T);
 
     mData.number = 0;
     memcpy(&mData.number, (void*)(&number), sizeof(T));
