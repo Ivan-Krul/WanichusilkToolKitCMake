@@ -37,7 +37,9 @@ namespace FVC {
     FloatVar(T number, const char* name  , DataType data_type);
     FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type);
     // intependant
-    FloatVar(const FloatVar& other);
+    inline FloatVar(const FloatVar& other) { copyother(other); }
+    // steals identity
+    inline FloatVar(FloatVar&& other) { moveother(std::move(other)); }
     
     inline bool          isArray()   const { return mLength.type == FormatType::array; }
     inline bool          isString()  const { return mLength.type == FormatType::string; }
@@ -51,13 +53,25 @@ namespace FVC {
     typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
     void clear();
-    void resize(halfuint new_length);
-    void shrinkToFit();
+    inline void reserve(halfuint new_capacity);
+    inline void resize(halfuint new_length);
+    inline void shrinkToFit();
+    void push(const FloatVar& that);
+    void push(char that);
+    void embrace(FloatVar&& that);
+
+    // operator [] here should be made
+
+    inline void operator=(const FloatVar& other) { copyother(other); }
+    inline void operator=(FloatVar&& other) { moveother(std::move(other)); }
+           bool operator==(const FloatVar& other) const;
 
     ~FloatVar();
     
   private:
     inline void assignname(const char* name);
+    void        copyother(const FloatVar& other);
+    void        moveother(FloatVar&& other);
     void        reallocate(halfuint new_length);
   
     char* maName = nullptr;
@@ -74,7 +88,6 @@ namespace FVC {
       halfuint capacity;
       FormatType type;
     } mLength = {0};
-    
   };
 
   template<typename T, typename>
