@@ -1,2 +1,2 @@
-b main.cpp:14
+b main.cpp:10
 run

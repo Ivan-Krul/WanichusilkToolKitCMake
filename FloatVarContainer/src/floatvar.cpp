@@ -34,16 +34,12 @@ namespace FVC {
     mDataType = data_type;
   }
   
-  FloatVar::FloatVar(const FloatVar& other) {
-    copyother(other);
-  }
-  
   void FloatVar::clear() {
     if (mData.number) {
       if (isArray()) delete[] mData.aList;
       else if (isString()) delete[] mData.aString;
-      else if (isNumber()) mData.number = 0;
     }
+    mData.number = 0;
 
     mLength.capacity = 0;
     mLength.length = 0;
@@ -97,6 +93,20 @@ namespace FVC {
     return mData.aList[index];
   }
 
+  inline const FloatVar& FloatVar::at(halfuint index) const {
+#ifdef FLOAT_VAR_INDEX_GUARD
+    if (index >= mLength.length)
+      return mData.aList[0];
+#endif
+    return mData.aList[index];
+  }
+
+  inline void FloatVar::reformat(FormatType format) {
+    clear();
+
+    mLength.type = format;
+  }
+
   bool FloatVar::operator==(const FloatVar& other) const {
     if (other.getFormat() != mLength.type) return false;
 
@@ -129,7 +139,7 @@ namespace FVC {
   }
   
   void FloatVar::assignname(const char* name) {
-    if (name) delete[] name;
+    if (maName) delete[] maName;
 
     mLength.length = strlen(name);
     maName = new char[mLength.length + 1];
@@ -145,22 +155,24 @@ namespace FVC {
     if (other.isArray()) {
       mData.aList = new FloatVar[mLength.capacity];
       memcpy(mData.aList, other.mData.aList, mLength.length);
+
     } else if (other.isString()) {
       mData.aString = new char[mLength.capacity];
       memcpy(mData.aString, other.getString(), mLength.length);
       mData.aString[mLength.length] = 0;
+
     } else if (other.isNumber())
-      mData.number = mData.number;
+      mData.number = other.mData.number;
   }
 
   void FloatVar::moveother(FloatVar&& other) {
-    mLength = other.mLength;
-    mData.number = other.mData.number;
+    mLength          = other.mLength;
+    mData.number     = other.mData.number;
     mDataType.dt.raw = other.mDataType.dt.raw;
-    maName = other.maName;
+    maName           = other.maName;
 
     other.mData.number = 0;
-    other.maName = nullptr;
+    other.maName       = nullptr;
   }
 
   void FloatVar::reallocate(halfuint new_capacity) {
@@ -177,7 +189,7 @@ namespace FVC {
       mData.aList = (FloatVar*)new_buf;
       break;
     case FormatType::string:
-      new_buf = new char[new_capacity +1];
+      new_buf = new char[new_capacity + 1];
       ((char*)new_buf)[new_capacity] = 0;
 
       memcpy(new_buf, mData.aString, std::min(new_capacity, mLength.capacity));

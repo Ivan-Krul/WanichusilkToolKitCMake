@@ -6,9 +6,9 @@
 
 #include "define.h"
 
-namespace FVC {
 #define FLOAT_VAR_INDEX_GUARD
 
+namespace FVC {
   constexpr int gDefaultDataType = 0x766F6964; // void
   
   class FloatVar {
@@ -43,14 +43,15 @@ namespace FVC {
     // steals identity
     inline FloatVar(FloatVar&& other) { moveother(std::move(other)); }
     
-    inline bool          isArray()   const { return mLength.type == FormatType::array; }
-    inline bool          isString()  const { return mLength.type == FormatType::string; }
-    inline bool          isNumber()  const { return mLength.type == FormatType::number; }
-    inline halfuint      getSize()   const { return mLength.length; }
-    inline const char*   getName()   const { return maName; }
-    inline DataType      getType()   const { return mDataType; }
-    inline FormatType    getFormat() const { return mLength.type; }
-    inline const char*   getString() const { return mData.aString; }
+    inline bool          isArray()     const { return mLength.type == FormatType::array; }
+    inline bool          isString()    const { return mLength.type == FormatType::string; }
+    inline bool          isNumber()    const { return mLength.type == FormatType::number; }
+    inline halfuint      getSize()     const { return mLength.length; }
+    inline halfuint      getCapacity() const { return mLength.capacity; }
+    inline const char*   getName()     const { return maName; }
+    inline DataType      getType()     const { return mDataType; }
+    inline FormatType    getFormat()   const { return mLength.type; }
+    inline const char*   getString()   const { return mData.aString; }
     template<typename T>
     typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
     
@@ -63,7 +64,13 @@ namespace FVC {
     void embrace(FloatVar&& that);
 
     inline FloatVar& operator[] (halfuint index);
-    // operator [] here should be made
+    inline const FloatVar& at(halfuint index) const;
+
+    inline void rename(const char* name) { assignname(name); }
+    inline void reformat(FormatType format);
+
+    template<typename T>
+    inline std::enable_if_t<std::is_arithmetic_v<T>> operator=(T number);
 
     inline void operator=(const FloatVar& other) { copyother(other); }
     inline void operator=(FloatVar&& other) { moveother(std::move(other)); }
@@ -102,7 +109,7 @@ namespace FVC {
     mLength.capacity = sizeof(T);
 
     mData.number = 0;
-    memcpy(&mData.number, (void*)(&number), sizeof(T));
+    memcpy(&mData.number, &number, sizeof(T));
 
     mDataType = data_type;
   }
@@ -113,6 +120,14 @@ namespace FVC {
       return *((T*)&mData.number);
     else
       return 0;
+  }
+
+  template<typename T>
+  inline std::enable_if_t<std::is_arithmetic_v<T>> FloatVar::operator=(T number) {
+    if (mLength.type != FormatType::number) return;
+
+    mData.number = 0;
+    memcpy(&mData.number, &number, sizeof(T));
   }
 }
 
