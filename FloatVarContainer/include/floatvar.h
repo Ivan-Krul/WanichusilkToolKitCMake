@@ -7,6 +7,8 @@
 #include "define.h"
 
 namespace FVC {
+#define FLOAT_VAR_INDEX_GUARD
+
   constexpr int gDefaultDataType = 0x766F6964; // void
   
   class FloatVar {
@@ -60,6 +62,7 @@ namespace FVC {
     void push(char that);
     void embrace(FloatVar&& that);
 
+    inline FloatVar& operator[] (halfuint index);
     // operator [] here should be made
 
     inline void operator=(const FloatVar& other) { copyother(other); }

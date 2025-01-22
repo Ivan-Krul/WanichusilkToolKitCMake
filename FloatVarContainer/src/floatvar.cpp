@@ -89,6 +89,14 @@ namespace FVC {
     mLength.length++;
   }
 
+  inline FloatVar& FloatVar::operator[](halfuint index) {
+#ifdef FLOAT_VAR_INDEX_GUARD
+    if (index >= mLength.length)
+      return mData.aList[0];
+#endif
+    return mData.aList[index];
+  }
+
   bool FloatVar::operator==(const FloatVar& other) const {
     if (other.getFormat() != mLength.type) return false;
 
