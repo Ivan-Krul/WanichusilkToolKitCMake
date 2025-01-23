@@ -29,7 +29,7 @@ namespace FVC {
     mLength.capacity = mLength.length;
     
     mData.aList = new FloatVar[mLength.capacity];
-    memcpy(mData.aList, list, mLength.length);
+    memcpy(mData.aList, list, mLength.length * sizeof(FloatVar));
     
     mDataType = data_type;
   }
@@ -154,7 +154,7 @@ namespace FVC {
 
     if (other.isList()) {
       mData.aList = new FloatVar[mLength.capacity];
-      memcpy(mData.aList, other.mData.aList, mLength.length);
+      memcpy(mData.aList, other.mData.aList, mLength.length * sizeof(FloatVar));
 
     } else if (other.isString()) {
       mData.aString = new char[mLength.capacity];

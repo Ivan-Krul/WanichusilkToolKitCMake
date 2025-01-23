@@ -7,9 +7,9 @@
 
 int main(int args, char* argv[]) {
 
-  FVC::FloatVar fv(-5.3f, "abc", '_tni');
+  FVC::FloatVar fv(-5.3f, "abc", "int_");
   
-  FVC::FloatVar fv1 = FVC::FloatVar(53, "def", 'beef');
+  FVC::FloatVar fv1 = FVC::FloatVar(53, "def", "beef");
 
   std::cout << "V: " << fv1.getNumber<int>() << '\n';
   std::cout << "N: " << fv1.getName() << '\n';

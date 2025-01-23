@@ -29,7 +29,8 @@ namespace FVC {
       none = 0,
       number = 1,
       string = 2,
-      list = 3
+      array = 3,
+      list = 4
     };
   
     FloatVar() = default;
@@ -37,13 +38,16 @@ namespace FVC {
     FloatVar(const char* string  , const char* name     , DataType data_type);
     template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
     FloatVar(T number, const char* name  , DataType data_type);
-    FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type);
+    template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type);
+    FloatVar(const FloatVar* list, halfuint list_count, const char* name  , DataType data_type);
     // intependant
     inline FloatVar(const FloatVar& other) { copyother(other); }
     // steals identity
     inline FloatVar(FloatVar&& other) { moveother(std::move(other)); }
     
-    inline bool          isList()     const { return mLength.type == FormatType::list; }
+    inline bool          isList()      const { return mLength.type == FormatType::list; }
+    inline bool          isArray()     const { return mLength.type == FormatType::array; }
     inline bool          isString()    const { return mLength.type == FormatType::string; }
     inline bool          isNumber()    const { return mLength.type == FormatType::number; }
     inline halfuint      getSize()     const { return mLength.length; }
@@ -88,6 +92,7 @@ namespace FVC {
     union DataCapsula {
       length_t  number;
       char*     aString;
+      length_t* aArray;
       FloatVar* aList;
     } mData;
     
@@ -96,6 +101,7 @@ namespace FVC {
     struct LengthStruct {
       halfuint length;
       halfuint capacity;
+      quadint offset;
       FormatType type;
     } mLength = {0};
   };
@@ -110,6 +116,20 @@ namespace FVC {
 
     mData.number = 0;
     memcpy(&mData.number, &number, sizeof(T));
+
+    mDataType = data_type;
+  }
+
+  template<typename T, typename>
+  inline FloatVar::FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type) {
+    assignname(name);
+    mLength.type = FormatType::array;
+    mLength.length = list_count;
+    mLength.capacity = list_count;
+    mLength.offset = sizeof(T);
+
+    mData.aArray = new T[mLength.length];
+    memcpy(mData.aArray, numbers, mLength.length * sizeof(T));
 
     mDataType = data_type;
   }
