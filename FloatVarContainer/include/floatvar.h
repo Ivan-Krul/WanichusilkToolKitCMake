@@ -29,7 +29,7 @@ namespace FVC {
       none = 0,
       number = 1,
       string = 2,
-      array = 3
+      list = 3
     };
   
     FloatVar() = default;
@@ -43,7 +43,7 @@ namespace FVC {
     // steals identity
     inline FloatVar(FloatVar&& other) { moveother(std::move(other)); }
     
-    inline bool          isArray()     const { return mLength.type == FormatType::array; }
+    inline bool          isList()     const { return mLength.type == FormatType::list; }
     inline bool          isString()    const { return mLength.type == FormatType::string; }
     inline bool          isNumber()    const { return mLength.type == FormatType::number; }
     inline halfuint      getSize()     const { return mLength.length; }
@@ -53,7 +53,7 @@ namespace FVC {
     inline FormatType    getFormat()   const { return mLength.type; }
     inline const char*   getString()   const { return mData.aString; }
     template<typename T>
-    typename std::enable_if<std::is_arithmetic<T>::value,T>::type getNumber() const;
+    typename std::enable_if<std::is_arithmetic_v<T>,T>::type getNumber() const;
     
     void clear();
     inline void reserve(halfuint new_capacity);
@@ -115,7 +115,7 @@ namespace FVC {
   }
 
   template<typename T>
-  typename std::enable_if<std::is_arithmetic<T>::value, T>::type FloatVar::getNumber() const {
+  typename std::enable_if<std::is_arithmetic_v<T>, T>::type FloatVar::getNumber() const {
     if (isNumber())
       return *((T*)&mData.number);
     else
@@ -128,6 +128,8 @@ namespace FVC {
 
     mData.number = 0;
     memcpy(&mData.number, &number, sizeof(T));
+    mLength.length = sizeof(T);
+    mLength.capacity = sizeof(T);
   }
 }
 

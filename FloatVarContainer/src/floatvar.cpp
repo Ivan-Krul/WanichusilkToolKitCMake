@@ -23,7 +23,7 @@ namespace FVC {
   
   FloatVar::FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) {
     assignname(name);
-    mLength.type = FormatType::array;
+    mLength.type = FormatType::list;
     
     mLength.length = list_count;
     mLength.capacity = mLength.length;
@@ -36,7 +36,7 @@ namespace FVC {
   
   void FloatVar::clear() {
     if (mData.number) {
-      if (isArray()) delete[] mData.aList;
+      if (isList()) delete[] mData.aList;
       else if (isString()) delete[] mData.aString;
     }
     mData.number = 0;
@@ -59,7 +59,7 @@ namespace FVC {
   }
 
   void FloatVar::push(const FloatVar& that) {
-    if (mLength.type != FormatType::array) return;
+    if (mLength.type != FormatType::list) return;
     if (mLength.capacity == mLength.length) reallocate(mLength.capacity * 2);
 
     mData.aList[mLength.length] = that;
@@ -68,7 +68,7 @@ namespace FVC {
   }
 
   void FloatVar::push(char that) {
-    if (mLength.type != FormatType::array) return;
+    if (mLength.type != FormatType::list) return;
     if (mLength.capacity - 1 == mLength.length) reallocate((mLength.capacity - 1) * 2);
 
     mData.aString[mLength.length] = that;
@@ -77,7 +77,7 @@ namespace FVC {
   }
 
   void FloatVar::embrace(FloatVar&& that) {
-    if (mLength.type != FormatType::array) return;
+    if (mLength.type != FormatType::list) return;
     if (mLength.capacity == mLength.length) reallocate(mLength.capacity * 2);
 
     mData.aList[mLength.length] = std::move(that);
@@ -111,7 +111,7 @@ namespace FVC {
     if (other.getFormat() != mLength.type) return false;
 
     bool same = true;
-    if (isArray()) {
+    if (isList()) {
       if (other.getSize() != mLength.length) return false;
       for (halfuint i = 0; i < mLength.length; i++)
         same &= mData.aList[i] == other.mData.aList[i];
@@ -132,7 +132,7 @@ namespace FVC {
     if(maName)    delete[] maName;
     
     if (mData.number) {
-      if (isArray()) delete[] mData.aList;
+      if (isList()) delete[] mData.aList;
       else if (isString()) delete[] mData.aString;
     }
 
@@ -152,7 +152,7 @@ namespace FVC {
     mLength = other.mLength;
     mDataType = other.getType();
 
-    if (other.isArray()) {
+    if (other.isList()) {
       mData.aList = new FloatVar[mLength.capacity];
       memcpy(mData.aList, other.mData.aList, mLength.length);
 
@@ -179,7 +179,7 @@ namespace FVC {
     // we copy the minimal size so we can crop it out if it wouldn't fit
     void* new_buf;
     switch (mLength.type) {
-    case FormatType::array:
+    case FormatType::list:
       new_buf = new FloatVar[new_capacity];
 
       memcpy(new_buf, mData.aList, std::min(new_capacity, mLength.capacity) * sizeof(FloatVar));
