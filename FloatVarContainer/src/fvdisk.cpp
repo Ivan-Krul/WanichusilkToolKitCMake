@@ -38,7 +38,7 @@ namespace FVC {
       }
     }
 
-    if (loadFloatVar(fin)) return true;
+    mBuf = loadFloatVar(fin);
 
     fin.close();
     return false;
@@ -51,9 +51,10 @@ namespace FVC {
     fout.write((char*)&number, namelen_bytes);
     fout.write(fv.getName(), number);
 
-    number = (length_t)fv.getFormat();
+    number = fv.getType().dt.raw;
+    fout.write((char*)&number, 4);
 
-    fout.write(fv.getType().dt.sym, 4);
+    number = (length_t)fv.getFormat();
     fout.write((char*)&number, sizeof(fv.getFormat()));
 
     if (fv.isList()) {
@@ -74,12 +75,43 @@ namespace FVC {
     }
   }
 
-  bool FloatVarDisk::loadFloatVar(std::ifstream& fin) {
+  FloatVar FloatVarDisk::loadFloatVar(std::ifstream& fin) {
+    FloatVar fv;
     char* buf;
+    length_t number = 0;
 
-    // work there ig
+    fin.read((char*)&number, namelen_bytes);
+    fin.read(buf, number);
 
-    return false;
+    fv.rename(buf);
+    number = 0;
+    fin.read(buf, 4);
+    fin.read((char*)&number, sizeof(fv.getFormat()));
+
+    fv.retype(buf);
+    fv.reformat((FloatVar::FormatType)number);
+    number = 0;
+    if (fv.isList()) {
+      fin.read((char*)&number, arraylen_bytes);
+
+      fv.resize(number);
+
+      for (length_t i = 0; i < fv.getSize(); i++)
+        fv.emplace(loadFloatVar(fin));
+    }
+    else if (fv.isString()) {
+      fin.read((char*)&number, arraylen_bytes);
+      fin.read(buf, number);
+      
+      fv.restring(buf, number);
+    }
+    else if (fv.isNumber()) {
+      fin.read((char*)&number, 8);
+
+      fv = number;
+    }
+
+    return fv;
   }
 }
 

@@ -15,7 +15,7 @@ namespace FVC {
 
   private:
     void saveFloatVar(const FloatVar& fv, std::ofstream& fout);
-    bool loadFloatVar(std::ifstream& fin);
+    FloatVar loadFloatVar(std::ifstream& fin);
 
     FloatVar mBuf;
     const char* maError;

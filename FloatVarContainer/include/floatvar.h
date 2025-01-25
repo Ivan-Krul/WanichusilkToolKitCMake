@@ -22,7 +22,7 @@ namespace FVC {
       uDataType dt;
       inline DataType() { dt.raw = gDefaultDataType; }
       inline DataType(int raw) { dt.raw = raw; }
-      inline DataType(const char* sym) { memcpy(dt.sym, sym, 4); }
+      inline DataType(const char* sym) { dt.raw = *(reinterpret_cast<const int*>(sym)); }
     };
   
     enum class FormatType : char {
@@ -61,20 +61,24 @@ namespace FVC {
     
     void clear();
     inline void reserve(halfuint new_capacity);
-    inline void resize(halfuint new_length);
+    void resize(halfuint new_length);
     inline void shrinkToFit();
     void push(const FloatVar& that);
     void push(char that);
-    void embrace(FloatVar&& that);
+    void emplace(FloatVar&& that);
 
     inline FloatVar& operator[] (halfuint index);
-    inline const FloatVar& at(halfuint index) const;
+    const FloatVar& at(halfuint index) const;
 
     inline void rename(const char* name) { assignname(name); }
-    inline void reformat(FormatType format);
+    inline void reformat(FormatType format) { clear(); mLength.type = format; }
+    inline void retype(DataType dt) { mDataType = dt; }
 
     template<typename T>
     inline std::enable_if_t<std::is_arithmetic_v<T>> operator=(T number);
+
+           void operator=(const char* str);
+           void restring(char* str, length_t len);
 
     inline void operator=(const FloatVar& other) { copyother(other); }
     inline void operator=(FloatVar&& other) { moveother(std::move(other)); }
