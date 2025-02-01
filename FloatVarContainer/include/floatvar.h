@@ -78,10 +78,10 @@ namespace FVC {
     inline std::enable_if_t<std::is_arithmetic_v<T>> operator=(T number);
 
            void operator=(const char* str);
-           void restring(char* str, length_t len);
+           void restring(char* str, halfuint len);
 
     inline void operator=(const FloatVar& other) { copyother(other); }
-    inline void operator=(FloatVar&& other) { moveother(std::move(other)); }
+    inline void operator=(FloatVar&& other) noexcept { moveother(std::move(other)); }
            bool operator==(const FloatVar& other) const;
 
     ~FloatVar();
@@ -94,7 +94,7 @@ namespace FVC {
   
     char* maName = nullptr;
     union DataCapsula {
-      length_t  number;
+      length_t  number = 0;
       char*     aString;
       length_t* aArray;
       FloatVar* aList;

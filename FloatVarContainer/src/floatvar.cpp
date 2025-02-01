@@ -116,7 +116,7 @@ namespace FVC {
     memcpy(mData.aString, str, mLength.length);
   }
 
-  void FloatVar::restring(char* str, length_t len) {
+  void FloatVar::restring(char* str, halfuint len) {
     if (mLength.type != FormatType::string) return;
     if (mData.aString) delete[] mData.aString;
 
@@ -150,13 +150,13 @@ namespace FVC {
   }
 
   FloatVar::~FloatVar() {
+    printf("str: %s\n", maName);
     if(maName)    delete[] maName;
     
-    if (mData.number && (!isNumber())) {
+    if (mData.number && ((char)mLength.type >> 1)) {
       if (isList()) delete[] mData.aList;
       else if (isString()) delete[] mData.aString;
     }
-
   }
   
   void FloatVar::assignname(const char* name) {
@@ -174,17 +174,22 @@ namespace FVC {
     mLength = other.mLength;
     mDataType = other.getType();
 
-    if (other.isList()) {
+    switch (mLength.type) {
+    case FormatType::list:
       mData.aList = new FloatVar[mLength.capacity];
-      memcpy(mData.aList, other.mData.aList, mLength.length * sizeof(FloatVar));
-
-    } else if (other.isString()) {
+      for (length_t i = 0; i < mLength.length; i++)
+#pragma warning(suppress : 6385)
+        mData.aList[i] = other.mData.aList[i];
+      break;
+    case FormatType::string:
       mData.aString = new char[mLength.capacity];
       memcpy(mData.aString, other.getString(), mLength.length);
       mData.aString[mLength.length] = 0;
-
-    } else if (other.isNumber())
+      break;
+    case FormatType::number:
       mData.number = other.mData.number;
+      break;
+    }    
   }
 
   void FloatVar::moveother(FloatVar&& other) {
@@ -194,7 +199,7 @@ namespace FVC {
     maName       = other.maName;
 
     other.mData.number = 0;
-    other.maName       = nullptr;
+    other.maName = nullptr;
   }
 
   void FloatVar::reallocate(halfuint new_capacity) {
