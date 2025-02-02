@@ -21,7 +21,7 @@ namespace FVC {
   }
 
   bool FloatVarDisk::load(const char* filepath) {
-    std::ifstream fin(filepath, std::ios::binary);
+    std::ifstream fin(filepath, std::ios::binary| std::ios::in);
 
     if (!fin.is_open()) {
       maError = "file isn't exist or isn't wanting to be opened";
@@ -29,13 +29,16 @@ namespace FVC {
     }
 
     {
-      char* buf;
-
+      char* buf = new char[9];
+      buf[8] = 0;
       fin.read(buf, 8);
       if (strcmp(buf, "FloatVar") != 0) {
         maError = "magic value isn't exist";
+        delete[] buf;
         return true;
       }
+
+      delete[] buf;
     }
 
     mBuf = loadFloatVar(fin);
@@ -81,10 +84,14 @@ namespace FVC {
     length_t number = 0;
 
     fin.read((char*)&number, namelen_bytes);
+    buf = new char[number + 1];
+    buf[number] = 0;
     fin.read(buf, number);
 
     fv.rename(buf);
     number = 0;
+    delete[] buf;
+    buf = new char[4];
     fin.read(buf, 4);
     fin.read((char*)&number, sizeof(fv.getFormat()));
 
@@ -94,16 +101,19 @@ namespace FVC {
     if (fv.isList()) {
       fin.read((char*)&number, arraylen_bytes);
 
-      fv.resize(number);
+      fv.reserve(number);
 
-      for (length_t i = 0; i < fv.getSize(); i++)
+      for (length_t i = 0; i < fv.getCapacity(); i++)
         fv.emplace(loadFloatVar(fin));
     }
     else if (fv.isString()) {
       fin.read((char*)&number, arraylen_bytes);
+      delete[] buf;
+      buf = new char[number + 1];
+      buf[number] = 0;
       fin.read(buf, number);
       
-      fv.restring(buf, number);
+      fv = buf;
     }
     else if (fv.isNumber()) {
       fin.read((char*)&number, 8);
@@ -111,6 +121,7 @@ namespace FVC {
       fv = number;
     }
 
+    delete[] buf;
     return fv;
   }
 }

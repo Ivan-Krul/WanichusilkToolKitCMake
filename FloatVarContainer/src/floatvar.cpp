@@ -10,23 +10,16 @@ namespace FVC {
   FloatVar::FloatVar(const char* string  , const char* name     , DataType data_type) {
     assignname(name);
     mLength.type = FormatType::string;
-    
+
     mLength.length = strlen(string);
-    mLength.capacity = mLength.length + 1;
-    
-    mData.aString = new char[mLength.capacity];
-    memcpy(mData.aString, string, mLength.length);    
-    mData.aString[mLength.length] = 0;
+    copystring((char*)string);
     
     mDataType = data_type;
   }
   
   FloatVar::FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) {
     assignname(name);
-    mLength.type = FormatType::list;
-    
-    mLength.length = list_count;
-    mLength.capacity = mLength.length;
+    mLength = { list_count, list_count, 0, FormatType::list };
     
     mData.aList = new FloatVar[mLength.capacity];
     memcpy(mData.aList, list, mLength.length * sizeof(FloatVar));
@@ -37,6 +30,7 @@ namespace FVC {
   void FloatVar::clear() {
     if (mData.number) {
       if (isList()) delete[] mData.aList;
+      else if (isArray()) delete[] (char*)mData.aArray;
       else if (isString()) delete[] mData.aString;
     }
     mData.number = 0;
@@ -46,7 +40,7 @@ namespace FVC {
   }
 
   void FloatVar::reserve(halfuint new_capacity) {
-    reallocate(new_capacity);
+    if(mLength.length < new_capacity) reallocate(new_capacity);
   }
 
   void FloatVar::resize(halfuint new_length) {
@@ -60,8 +54,7 @@ namespace FVC {
 
   void FloatVar::push(const FloatVar& that) {
     if (mLength.type != FormatType::list) return;
-    if (mLength.capacity == 0) reallocate(2);
-    if (mLength.capacity == mLength.length) reallocate(mLength.capacity * 2);
+    listexpansioncheck();
 
     mData.aList[mLength.length] = that;
 
@@ -69,8 +62,8 @@ namespace FVC {
   }
 
   void FloatVar::push(char that) {
-    if (mLength.type != FormatType::list) return;
-    if (mLength.capacity == 0) reallocate(2);
+    if (mLength.type != FormatType::string) return;
+    if (mLength.capacity < 2) reallocate(2);
     if (mLength.capacity - 1 == mLength.length) reallocate((mLength.capacity - 1) * 2);
 
     mData.aString[mLength.length] = that;
@@ -80,8 +73,7 @@ namespace FVC {
 
   void FloatVar::emplace(FloatVar&& that) {
     if (mLength.type != FormatType::list) return;
-    if (mLength.capacity == 0) reallocate(2);
-    if (mLength.capacity == mLength.length) reallocate(mLength.capacity * 2);
+    listexpansioncheck();
 
     mData.aList[mLength.length] = std::move(that);
 
@@ -89,31 +81,23 @@ namespace FVC {
   }
 
   inline FloatVar& FloatVar::operator[](halfuint index) {
-#ifdef FLOAT_VAR_INDEX_GUARD
-    if (index >= mLength.length)
-      return mData.aList[0];
-#endif
-    return mData.aList[index];
+    return ARAY_ACCESS(mData.aList, index, mLength.length);
   }
 
   const FloatVar& FloatVar::at(halfuint index) const {
-#ifdef FLOAT_VAR_INDEX_GUARD
-    if (index >= mLength.length)
-      return mData.aList[0];
-#endif
-    return mData.aList[index];
+    return ARAY_ACCESS(mData.aList, index, mLength.length);
+  }
+
+  inline char& FloatVar::strIndex(halfuint index) {
+    return ARAY_ACCESS(mData.aString, index, mLength.length);
+  }
+
+  inline const char FloatVar::strIndexAt(halfuint index) const {
+    return ARAY_ACCESS(mData.aString, index, mLength.length);
   }
 
   void FloatVar::operator=(const char* str) {
-    if (mLength.type != FormatType::string) return;
-    if (mData.aString) delete[] mData.aString;
-
-    mLength.length = strlen(str);
-    mLength.capacity = mLength.length + 1;
-
-    mData.aString = new char[mLength.capacity];
-    mData.aString[mLength.length] = 0;
-    memcpy(mData.aString, str, mLength.length);
+    restring((char*)str, strlen(str));
   }
 
   void FloatVar::restring(char* str, halfuint len) {
@@ -121,11 +105,7 @@ namespace FVC {
     if (mData.aString) delete[] mData.aString;
 
     mLength.length = len;
-    mLength.capacity = mLength.length + 1;
-
-    mData.aString = new char[mLength.capacity];
-    mData.aString[mLength.length] = 0;
-    memcpy(mData.aString, str, mLength.length);
+    copystring(str);
   }
 
   bool FloatVar::operator==(const FloatVar& other) const {
@@ -134,10 +114,12 @@ namespace FVC {
     bool same = true;
     if (isList()) {
       if (other.getSize() != mLength.length) return false;
-      for (halfuint i = 0; i < mLength.length; i++)
+      for (halfuint i = 0; i < mLength.length; i++) {
         same &= mData.aList[i] == other.mData.aList[i];
+        if (!same) return false;
+      }
 
-      return same;
+      return true;
     }
     else if (isString()) {
       if (other.getSize() != mLength.length) return false;
@@ -150,11 +132,11 @@ namespace FVC {
   }
 
   FloatVar::~FloatVar() {
-    printf("str: %s\n", maName);
     if(maName)    delete[] maName;
     
     if (mData.number && ((char)mLength.type >> 1)) {
       if (isList()) delete[] mData.aList;
+      else if (isArray()) delete[] (char*)mData.aArray;
       else if (isString()) delete[] mData.aString;
     }
   }
@@ -167,6 +149,13 @@ namespace FVC {
     maName = new char[len + 1];
     memcpy(maName, name, len);
     maName[len] = 0;
+  }
+
+  inline void FloatVar::copystring(char* str) {
+    mLength.capacity = mLength.length + 1;
+    mData.aString = new char[mLength.capacity];
+    mData.aString[mLength.length] = 0;
+    memcpy(mData.aString, str, mLength.length);
   }
 
   void FloatVar::copyother(const FloatVar& other) {
@@ -202,6 +191,11 @@ namespace FVC {
     other.maName = nullptr;
   }
 
+  inline void FloatVar::listexpansioncheck() {
+    if (mLength.capacity < 2) reallocate(2);
+    if (mLength.capacity == mLength.length) reallocate(mLength.capacity * 2);
+  }
+
   void FloatVar::reallocate(halfuint new_capacity) {
     // we copy the minimal size so we can crop it out if it wouldn't fit
     void* new_buf;
@@ -212,8 +206,13 @@ namespace FVC {
       memcpy(new_buf, mData.aList, std::min(new_capacity, mLength.capacity) * sizeof(FloatVar));
       memset(new_buf, 0, new_capacity * sizeof(FloatVar));
       delete[] mData.aList;
+      break;
+    case FormatType::array:
+      new_buf = new char[new_capacity * mLength.offset];
 
-      mData.aList = (FloatVar*)new_buf;
+      memcpy(new_buf, mData.aArray, std::min(new_capacity, mLength.capacity) * mLength.offset);
+      memset(new_buf, 0, new_capacity * mLength.length);
+      delete[] (char*)mData.aArray;
       break;
     case FormatType::string:
       new_buf = new char[new_capacity + 1];
@@ -222,10 +221,13 @@ namespace FVC {
       memcpy(new_buf, mData.aString, std::min(new_capacity, mLength.capacity));
       memset(new_buf, 0, new_capacity);
       delete[] mData.aString;
-
-      mData.aString = (char*)new_buf;
+      break;
+    default:
+      // wtf?
+      abort();
       break;
     }
+    mData.aString = (char*)new_buf;
     mLength.length = std::min(new_capacity, mLength.length);
     mLength.capacity = new_capacity;
   }
