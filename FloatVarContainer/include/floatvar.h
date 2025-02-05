@@ -3,6 +3,7 @@
 #include <string.h>
 #include <memory>
 #include <type_traits>
+#include <initializer_list>
 
 #include "define.h"
 
@@ -13,8 +14,6 @@
 #else
 #define ARAY_ACCESS(a,i,m) (a[i])
 #endif
-
-#define FLOAT_VAR_ENABLE_ARITHMETIC(V) std::enable_if<std::is_arithmetic<T>::value, V>::type
 
 
 namespace FVC {
@@ -41,17 +40,19 @@ namespace FVC {
     };
   
     FloatVar() = default;
-    FloatVar(const char* name     , DataType data_type);
-    FloatVar(const char* string  , const char* name     , DataType data_type);
-    template<typename T, typename = typename FLOAT_VAR_ENABLE_ARITHMETIC(void)>
-    FloatVar(T number, const char* name  , DataType data_type);
-    template<typename T, typename = typename FLOAT_VAR_ENABLE_ARITHMETIC(void)>
-    FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type);
-    FloatVar(const FloatVar* list, halfuint list_count, const char* name  , DataType data_type);
+    explicit FloatVar(const char* name     , DataType data_type);
+    explicit FloatVar(const char* string  , const char* name     , DataType data_type);
+    template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
+    explicit FloatVar(T number, const char* name  , DataType data_type);
+    template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
+    explicit FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type);
+    template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
+    explicit FloatVar(std::initializer_list<T> list, const char* name, DataType data_type);
+    explicit FloatVar(const FloatVar* list, halfuint list_count, const char* name  , DataType data_type);
     // intependant
     inline FloatVar(const FloatVar& other) { copyother(other); }
     // steals identity
-    inline FloatVar(FloatVar&& other) { moveother(std::move(other)); }
+    inline FloatVar(FloatVar&& other) noexcept { moveother(std::move(other)); }
     
     inline bool          isList()      const { return mLength.type == FormatType::list; }
     inline bool          isArray()     const { return mLength.type == FormatType::array; }
@@ -60,12 +61,14 @@ namespace FVC {
     inline bool          isNone()      const { return mLength.type == FormatType::none; }
     inline halfuint      getSize()     const { return mLength.length; }
     inline halfuint      getCapacity() const { return mLength.capacity; }
+    inline halfuint      getOffset()   const { return mLength.offset; }
+    inline const void const* getRawData() const { return mData.aString; }
     inline const char*   getName()     const { return maName; }
     inline DataType      getType()     const { return mDataType; }
     inline FormatType    getFormat()   const { return mLength.type; }
     inline const char*   getString()   const { return mData.aString; }
     template<typename T>
-    inline typename FLOAT_VAR_ENABLE_ARITHMETIC(T) getNumber() const;
+    inline typename std::enable_if_t<std::is_arithmetic<T>::value, T> getNumber() const;
     
     void clear();
     void reserve(halfuint new_capacity);
@@ -74,7 +77,7 @@ namespace FVC {
     void push(const FloatVar& that);
 
     template <typename T>
-    typename FLOAT_VAR_ENABLE_ARITHMETIC(void) push(T that);
+    typename std::enable_if_t<std::is_arithmetic<T>::value> push(T that);
     void push(char that);
     void emplace(FloatVar&& that);
 
@@ -85,16 +88,17 @@ namespace FVC {
     inline const char strIndexAt(halfuint index) const;
 
     template<typename T>
-    inline typename FLOAT_VAR_ENABLE_ARITHMETIC(T&) numIndex(halfuint index);
+    inline typename std::enable_if_t<std::is_arithmetic<T>::value, T&> numIndex(halfuint index);
     template<typename T>
-    inline typename FLOAT_VAR_ENABLE_ARITHMETIC(const T) numIndexAt(halfuint index) const;
+    inline typename std::enable_if_t<std::is_arithmetic<T>::value, const T> numIndexAt(halfuint index) const;
 
     inline void rename(const char* name) { assignname(name); }
     inline void reformat(FormatType format) { clear(); mLength.type = format; }
+    inline void reoffset(quaduint offset) { mLength.offset = offset; }
     inline void retype(DataType dt) { mDataType = dt; }
 
     template<typename T>
-    inline typename FLOAT_VAR_ENABLE_ARITHMETIC(void) operator=(T number);
+    inline typename std::enable_if_t<std::is_arithmetic<T>::value> operator=(T number);
 
            void operator=(const char* str);
            void restring(char* str, halfuint len);
@@ -154,17 +158,27 @@ namespace FVC {
     mDataType = data_type;
   }
 
+  template<typename T, typename>
+  FloatVar::FloatVar(std::initializer_list<T> list, const char* name, DataType data_type) {
+    assignname(name);
+    mLength = { list.size(), list.size(), sizeof(T), FormatType::array };
+
+    mData.aString = new char[mLength.length * sizeof(T)];
+    memcpy(mData.aArray, list.begin(), mLength.length * sizeof(T));
+
+    mDataType = data_type;
+  }
+
   template<typename T>
-  typename FLOAT_VAR_ENABLE_ARITHMETIC(T) FloatVar::getNumber() const {
+  typename std::enable_if_t<std::is_arithmetic<T>::value, T> FloatVar::getNumber() const {
     return isNumber() ? *((T*)&mData.number) : 0;
   }
 
   template<typename T>
-  typename FLOAT_VAR_ENABLE_ARITHMETIC(void) FloatVar::push(T that) {
+  typename std::enable_if_t<std::is_arithmetic<T>::value> FloatVar::push(T that) {
     if (mLength.type != FormatType::array) return;
     if (sizeof(T) != mLength.offset) return;
-    if (mLength.capacity < 2) reallocate(2);
-    if (mLength.capacity - 1 == mLength.length) reallocate((mLength.capacity - 1) * 2);
+    listexpansioncheck();
 
     ((T*)mData.aArray)[mLength.length] = that;
 
@@ -172,17 +186,17 @@ namespace FVC {
   }
 
   template<typename T>
-  inline typename FLOAT_VAR_ENABLE_ARITHMETIC(T&) FloatVar::numIndex(halfuint index) {
+  inline typename std::enable_if_t<std::is_arithmetic<T>::value, T&> FloatVar::numIndex(halfuint index) {
     return ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
   }
 
   template<typename T>
-  inline typename FLOAT_VAR_ENABLE_ARITHMETIC(const T) FloatVar::numIndexAt(halfuint index) const {
+  inline typename std::enable_if_t<std::is_arithmetic<T>::value, const T> FloatVar::numIndexAt(halfuint index) const {
     return ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
   }
 
   template<typename T>
-  inline typename FLOAT_VAR_ENABLE_ARITHMETIC(void) FloatVar::operator=(T number) {
+  inline typename std::enable_if_t<std::is_arithmetic<T>::value> FloatVar::operator=(T number) {
     if (mLength.type != FormatType::number) return;
 
     mData.number = 0;

@@ -136,7 +136,7 @@ namespace FVC {
     
     if (mData.number && ((char)mLength.type >> 1)) {
       if (isList()) delete[] mData.aList;
-      else if (isArray()) delete[] (char*)mData.aArray;
+      else if (isArray()) delete[] mData.aString;
       else if (isString()) delete[] mData.aString;
     }
   }
@@ -169,6 +169,10 @@ namespace FVC {
       for (length_t i = 0; i < mLength.length; i++)
 #pragma warning(suppress : 6385)
         mData.aList[i] = other.mData.aList[i];
+      break;
+    case FormatType::array:
+      mData.aString = new char[mLength.length * mLength.offset];
+      memcpy(mData.aString, other.getRawData(), mLength.length * mLength.offset);
       break;
     case FormatType::string:
       mData.aString = new char[mLength.capacity];
@@ -204,22 +208,19 @@ namespace FVC {
       new_buf = new FloatVar[new_capacity];
 
       memcpy(new_buf, mData.aList, std::min(new_capacity, mLength.capacity) * sizeof(FloatVar));
-      memset(new_buf, 0, new_capacity * sizeof(FloatVar));
       delete[] mData.aList;
       break;
     case FormatType::array:
       new_buf = new char[new_capacity * mLength.offset];
 
       memcpy(new_buf, mData.aArray, std::min(new_capacity, mLength.capacity) * mLength.offset);
-      memset(new_buf, 0, new_capacity * mLength.length);
-      delete[] (char*)mData.aArray;
+      delete[] mData.aString;
       break;
     case FormatType::string:
       new_buf = new char[new_capacity + 1];
       ((char*)new_buf)[new_capacity] = 0;
 
       memcpy(new_buf, mData.aString, std::min(new_capacity, mLength.capacity));
-      memset(new_buf, 0, new_capacity);
       delete[] mData.aString;
       break;
     default:

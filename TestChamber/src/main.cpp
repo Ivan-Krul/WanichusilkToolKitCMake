@@ -9,17 +9,14 @@
 #undef FLOAT_VAR_INDEX_GUARD
 
 int main(int args, char* argv[]) {
+  float abc[] = { -9.0f,1.2f,5.2f };
 
-  FVC::FloatVar fv;
+  FVC::FloatVar fv(abc, 3, "abc", "aray");
 
-  {
-    FVC::FloatVarDisk fvd;
-    if (fvd.load("abacada.txt")) printf("error: %s", fvd.pullError());
-    fv = fvd.pullFloatVar();
-  }
+  FVC::FloatVarDisk fvd;
+  fvd.insertFloatVar(fv);
+  fvd.save("sup.txt");
 
   printf("Hello from WanichusilkToolKit.TestChamber project!\n");
   return 0;
-
-  // sigsegv is called for FloatVar when it has null
 }

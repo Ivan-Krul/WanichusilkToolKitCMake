@@ -47,8 +47,7 @@ namespace FVC {
     return false;
   }
 
-  void FloatVarDisk::saveFloatVar(const FloatVar& fv, std::ofstream& fout) {
-
+  void FloatVarDisk::saveFloatVarHeader(const FloatVar& fv, std::ofstream& fout) {
     length_t number = strlen(fv.getName());
 
     fout.write((char*)&number, namelen_bytes);
@@ -59,26 +58,42 @@ namespace FVC {
 
     number = (length_t)fv.getFormat();
     fout.write((char*)&number, sizeof(fv.getFormat()));
+  }
 
-    if (fv.isList()) {
+  void FloatVarDisk::saveFloatVar(const FloatVar& fv, std::ofstream& fout) {
+    saveFloatVarHeader(fv, fout);
+
+    length_t number = strlen(fv.getName());
+
+    switch (fv.getFormat()) {
+    case FloatVar::FormatType::list:
       number = fv.getSize();
       fout.write((char*)&number, arraylen_bytes);
 
       for (length_t i = 0; i < fv.getSize(); i++)
         saveFloatVar(fv.at(i), fout);
-    }
-    else if (fv.isString()) {
+      break;
+    case FloatVar::FormatType::array:
+      number = fv.getOffset();
+      fout.write((char*)&number, offsetlen_bytes);
+      number = fv.getSize();
+      fout.write((char*)&number, arraylen_bytes);
+
+      fout.write((const char*)fv.getRawData(), number * fv.getOffset());
+      break;
+    case FloatVar::FormatType::string:
       number = fv.getSize();
       fout.write((char*)&number, arraylen_bytes);
       fout.write(fv.getString(), number);
-    }
-    else if (fv.isNumber()) {
+      break;
+    case FloatVar::FormatType::number:
       number = fv.getNumber<length_t>();
       fout.write((char*)&number, 8);
+      break;
     }
   }
 
-  FloatVar FloatVarDisk::loadFloatVar(std::ifstream& fin) {
+  FloatVar FloatVarDisk::loadFloatVarHeader(std::ifstream& fin) {
     FloatVar fv;
     char* buf;
     length_t number = 0;
@@ -98,30 +113,56 @@ namespace FVC {
     fv.retype(buf);
     fv.reformat((FloatVar::FormatType)number);
     number = 0;
-    if (fv.isList()) {
+
+    delete[] buf;
+    return fv;
+  }
+
+  FloatVar FloatVarDisk::loadFloatVar(std::ifstream& fin) {
+    FloatVar fv = std::move(loadFloatVarHeader(fin));
+    char* buf;
+    length_t number = 0;
+
+    switch (fv.getFormat()) {
+    case FloatVar::FormatType::list:
       fin.read((char*)&number, arraylen_bytes);
 
       fv.reserve(number);
 
       for (length_t i = 0; i < fv.getCapacity(); i++)
         fv.emplace(loadFloatVar(fin));
-    }
-    else if (fv.isString()) {
-      fin.read((char*)&number, arraylen_bytes);
+      break;
+    case FloatVar::FormatType::array:
+      fin.read((char*)&number, offsetlen_bytes);
+      fv.reoffset(number);
+      fin.read((char*)&number, offsetlen_bytes);
+      fv.resize(number);
+
+      buf = new char[number * fv.getOffset()];
+
+      fin.read(buf, number * fv.getOffset());
+
+      fv = buf; // feeling bad
+
       delete[] buf;
+      break;
+    case FloatVar::FormatType::string:
+      fin.read((char*)&number, arraylen_bytes);
       buf = new char[number + 1];
       buf[number] = 0;
       fin.read(buf, number);
-      
+
       fv = buf;
-    }
-    else if (fv.isNumber()) {
+
+      delete[] buf;
+      break;
+    case FloatVar::FormatType::number:
       fin.read((char*)&number, 8);
 
       fv = number;
+      break;
     }
 
-    delete[] buf;
     return fv;
   }
 }

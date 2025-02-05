@@ -4,6 +4,7 @@
 namespace FVC {
   class FloatVarDisk {
     const static int namelen_bytes = 1;
+    const static int offsetlen_bytes = 1;
     const static int arraylen_bytes = 4;
 
   public:
@@ -14,7 +15,9 @@ namespace FVC {
     inline FloatVar&& pullFloatVar() { return std::move(mBuf); }
 
   private:
+    void saveFloatVarHeader(const FloatVar& fv, std::ofstream& fout);
     void saveFloatVar(const FloatVar& fv, std::ofstream& fout);
+    FloatVar loadFloatVarHeader(std::ifstream& fin);
     FloatVar loadFloatVar(std::ifstream& fin);
 
     FloatVar mBuf;
