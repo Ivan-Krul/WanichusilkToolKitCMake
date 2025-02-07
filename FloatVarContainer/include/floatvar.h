@@ -6,50 +6,15 @@
 #include <initializer_list>
 
 #include "define.h"
-
-#define FLOAT_VAR_INDEX_GUARD
-#define FLOAT_VAR_ITERATOR_TYPE_GUARD
-
-#ifdef FLOAT_VAR_INDEX_GUARD
-#define ARAY_ACCESS(a,i,m) (i>=m?a[0]:a[i])
-#else
-#define ARAY_ACCESS(a,i,m) (a[i])
-#endif
-
-#ifdef FLOAT_VAR_ITERATOR_TYPE_GUARD
-#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_same?(is_begin?a:a + len):(a))
-#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_same?(is_begin?a + (len - 1):a - 1):(a))
-#else
-#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_begin?a:a + len)
-#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_begin?a + (len - 1):a - 1)
-#endif
+#include "fvheader.h"
 
 
 namespace FVC {
-  constexpr int gDefaultDataType = 0x766F6964; // void
-  
-  class FloatVar {
+  class FloatVar : public FloatVarHeader {
   public:
-    struct DataType {
-      union uDataType {
-        char sym[4];
-        int raw;
-      } dt;
-      inline DataType() { dt.raw = gDefaultDataType; }
-      inline DataType(int raw) { dt.raw = raw; }
-      inline DataType(const char* sym) { dt.raw = *(reinterpret_cast<const int*>(sym)); }
-    };
-  
-    enum class FormatType : char {
-      none = 0,
-      number = 1,
-      string = 2,
-      array = 3,
-      list = 4
-    };
   
     FloatVar() = default;
-    explicit FloatVar(const char* name     , DataType data_type);
+    explicit FloatVar(const char* name, DataType data_type) : FloatVarHeader(name, data_type) {}
     explicit FloatVar(const char* string  , const char* name     , DataType data_type);
     template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
     explicit FloatVar(T number, const char* name  , DataType data_type);
@@ -63,23 +28,16 @@ namespace FVC {
     // steals identity
     inline FloatVar(FloatVar&& other) noexcept { moveother(std::move(other)); }
     
-    inline bool          isList()      const { return mLength.type == FormatType::list; }
-    inline bool          isArray()     const { return mLength.type == FormatType::array; }
-    inline bool          isString()    const { return mLength.type == FormatType::string; }
-    inline bool          isNumber()    const { return mLength.type == FormatType::number; }
-    inline bool          isNone()      const { return mLength.type == FormatType::none; }
     inline halfuint      getSize()     const { return mLength.length; }
     inline halfuint      getCapacity() const { return mLength.capacity; }
     inline halfuint      getOffset()   const { return mLength.offset; }
     inline const void const* getRawData() const { return mData.aString; }
-    inline const char*   getName()     const { return maName; }
-    inline DataType      getType()     const { return mDataType; }
-    inline FormatType    getFormat()   const { return mLength.type; }
+
     inline const char*   getString()   const { return mData.aString; }
     template<typename T>
     inline typename std::enable_if_t<std::is_arithmetic<T>::value, T> getNumber() const;
     
-    void clear();
+    void clear() override;
     void reserve(halfuint new_capacity);
     void resize(halfuint new_length);
     inline void shrinkToFit();
@@ -110,10 +68,8 @@ namespace FVC {
     template<typename T>
     inline typename std::enable_if_t<std::is_arithmetic<T>::value, const T> numIndexAt(halfuint index) const;
 
-    inline void rename(const char* name) { assignname(name); }
-    inline void reformat(FormatType format) { clear(); mLength.type = format; }
+
     inline void reoffset(quaduint offset) { mLength.offset = offset; }
-    inline void retype(DataType dt) { mDataType = dt; }
 
     template<typename T>
     inline typename std::enable_if_t<std::is_arithmetic<T>::value> operator=(T number);
@@ -125,66 +81,51 @@ namespace FVC {
     inline void operator=(FloatVar&& other) noexcept { moveother(std::move(other)); }
            bool operator==(const FloatVar& other) const;
 
-    ~FloatVar();
+    virtual ~FloatVar();
     
   private:
-    inline void assignname(const char* name);
     inline void copystring(char* str);
     void        copyother(const FloatVar& other);
     void        moveother(FloatVar&& other);
     inline void listexpansioncheck();
     void        reallocate(halfuint new_length);
   
-    char* maName = nullptr;
     union DataCapsula {
       length_t  number = 0;
       char*     aString;
       length_t* aArray;
       FloatVar* aList;
     } mData;
-    
-    DataType mDataType;
-    
+
     struct LengthStruct {
       halfuint length;
       halfuint capacity;
       quadint offset;
-      FormatType type;
-    } mLength = {0};
+    } mLength = { 0 };
   };
 
   template<typename T, typename>
-  FloatVar::FloatVar(T number, const char* name, DataType data_type) {
-    assignname(name);
-
+  FloatVar::FloatVar(T number, const char* name, DataType data_type) : FloatVarHeader(name, data_type) {
     mLength = { sizeof(T), sizeof(T), 0, FormatType::number };
 
     mData.number = 0;
     memcpy(&mData.number, &number, sizeof(T));
-
-    mDataType = data_type;
   }
 
   template<typename T, typename>
-  inline FloatVar::FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type) {
-    assignname(name);
+  inline FloatVar::FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type) : FloatVarHeader(name, data_type) {
     mLength = {list_count, list_count, sizeof(T), FormatType::array};
     
     mData.aString = new char[mLength.length * sizeof(T)];
     memcpy(mData.aArray, numbers, mLength.length * sizeof(T));
-
-    mDataType = data_type;
   }
 
   template<typename T, typename>
-  FloatVar::FloatVar(std::initializer_list<T> list, const char* name, DataType data_type) {
-    assignname(name);
+  FloatVar::FloatVar(std::initializer_list<T> list, const char* name, DataType data_type) : FloatVarHeader(name, data_type) {
     mLength = { list.size(), list.size(), sizeof(T), FormatType::array };
 
     mData.aString = new char[mLength.length * sizeof(T)];
     memcpy(mData.aArray, list.begin(), mLength.length * sizeof(T));
-
-    mDataType = data_type;
   }
 
   template<typename T>

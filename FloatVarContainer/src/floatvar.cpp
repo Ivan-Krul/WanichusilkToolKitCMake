@@ -1,30 +1,14 @@
 #include "../include/floatvar.h"
 
 namespace FVC {
-  FloatVar::FloatVar(const char* name     , DataType data_type) {
-    assignname(name);
-    mLength.type = FormatType::none;
-    mDataType = data_type;
-  }
-  
-  FloatVar::FloatVar(const char* string  , const char* name     , DataType data_type) {
-    assignname(name);
-    mLength.type = FormatType::string;
-
+  FloatVar::FloatVar(const char* string  , const char* name     , DataType data_type) : FloatVarHeader(name, data_type, FormatType::string) {
     mLength.length = strlen(string);
     copystring((char*)string);
-    
-    mDataType = data_type;
   }
   
-  FloatVar::FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) {
-    assignname(name);
-    mLength = { list_count, list_count, 0, FormatType::list };
-    
+  FloatVar::FloatVar(const FloatVar* list, halfuint list_count  , const char* name  , DataType data_type) : FloatVarHeader(name, data_type, FormatType::list) {
     mData.aList = new FloatVar[mLength.capacity];
     memcpy(mData.aList, list, mLength.length * sizeof(FloatVar));
-    
-    mDataType = data_type;
   }
   
   void FloatVar::clear() {
@@ -53,7 +37,7 @@ namespace FVC {
   }
 
   void FloatVar::push(const FloatVar& that) {
-    if (mLength.type != FormatType::list) return;
+    if (!isList()) return;
     listexpansioncheck();
 
     mData.aList[mLength.length] = that;
@@ -62,7 +46,7 @@ namespace FVC {
   }
 
   void FloatVar::push(char that) {
-    if (mLength.type != FormatType::string) return;
+    if (!isString()) return;
     if (mLength.capacity < 2) reallocate(2);
     if (mLength.capacity - 1 == mLength.length) reallocate((mLength.capacity - 1) * 2);
 
@@ -72,7 +56,7 @@ namespace FVC {
   }
 
   void FloatVar::emplace(FloatVar&& that) {
-    if (mLength.type != FormatType::list) return;
+    if (!isList()) return;
     listexpansioncheck();
 
     mData.aList[mLength.length] = std::move(that);
@@ -101,7 +85,7 @@ namespace FVC {
   }
 
   void FloatVar::restring(char* str, halfuint len) {
-    if (mLength.type != FormatType::string) return;
+    if (!isString()) return;
     if (mData.aString) delete[] mData.aString;
 
     mLength.length = len;
@@ -109,7 +93,7 @@ namespace FVC {
   }
 
   bool FloatVar::operator==(const FloatVar& other) const {
-    if (other.getFormat() != mLength.type) return false;
+    if (other.getFormat() != getFormat()) return false;
 
     bool same = true;
     if (isList()) {
@@ -132,23 +116,11 @@ namespace FVC {
   }
 
   FloatVar::~FloatVar() {
-    if(maName)    delete[] maName;
-    
-    if (mData.number && ((char)mLength.type >> 1)) {
+    if (mData.number && ((char)getFormat() >> 1)) {
       if (isList()) delete[] mData.aList;
       else if (isArray()) delete[] mData.aString;
       else if (isString()) delete[] mData.aString;
     }
-  }
-  
-  void FloatVar::assignname(const char* name) {
-    if (maName) delete[] maName;
-
-    length_t len = strlen(name);
-
-    maName = new char[len + 1];
-    memcpy(maName, name, len);
-    maName[len] = 0;
   }
 
   inline void FloatVar::copystring(char* str) {
@@ -161,9 +133,9 @@ namespace FVC {
   void FloatVar::copyother(const FloatVar& other) {
     assignname(other.getName());
     mLength = other.mLength;
-    mDataType = other.getType();
+    retype(other.getType());
 
-    switch (mLength.type) {
+    switch (getFormat()) {
     case FormatType::list:
       mData.aList = new FloatVar[mLength.capacity];
       for (length_t i = 0; i < mLength.length; i++)
@@ -188,11 +160,10 @@ namespace FVC {
   void FloatVar::moveother(FloatVar&& other) {
     mLength      = other.mLength;
     mData.number = other.mData.number;
-    mDataType    = other.mDataType;
-    maName       = other.maName;
 
     other.mData.number = 0;
-    other.maName = nullptr;
+
+    moveotherheader(std::move(other));
   }
 
   inline void FloatVar::listexpansioncheck() {
@@ -203,7 +174,7 @@ namespace FVC {
   void FloatVar::reallocate(halfuint new_capacity) {
     // we copy the minimal size so we can crop it out if it wouldn't fit
     void* new_buf;
-    switch (mLength.type) {
+    switch (getFormat()) {
     case FormatType::list:
       new_buf = new FloatVar[new_capacity];
 

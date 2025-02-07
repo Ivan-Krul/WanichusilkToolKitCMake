@@ -44,3 +44,23 @@ typedef unsigned char halfuint;
 
 // better to have twice as bigger range sacrificing 1 number
 #define AVOID_MAX(x) (~x==0?x-1:x)
+
+
+
+// flags for compilation guards in FloatVar
+#define FLOAT_VAR_INDEX_GUARD
+#define FLOAT_VAR_ITERATOR_TYPE_GUARD
+
+#ifdef FLOAT_VAR_INDEX_GUARD
+#define ARAY_ACCESS(a,i,len) (i>=len?a[0]:a[i])
+#else
+#define ARAY_ACCESS(a,i,l) (a[i])
+#endif
+
+#ifdef FLOAT_VAR_ITERATOR_TYPE_GUARD
+#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_same?(is_begin?a:a + len):(a))
+#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_same?(is_begin?a + (len - 1):a - 1):(a))
+#else
+#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_begin?a:a + len)
+#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_begin?a + (len - 1):a - 1)
+#endif
