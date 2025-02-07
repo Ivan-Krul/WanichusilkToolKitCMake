@@ -133,6 +133,7 @@ namespace FVC {
   void FloatVar::copyother(const FloatVar& other) {
     copyotherheader(other);
     mLength = other.mLength;
+    retype(other.getType());
 
     switch (getFormat()) {
     case FormatType::list:

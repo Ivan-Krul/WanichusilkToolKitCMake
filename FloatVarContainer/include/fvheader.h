@@ -62,7 +62,7 @@ namespace FVC {
 
 
   protected:
-    void assignname(const char* name);
+    inline void assignname(const char* name);
     inline void copyotherheader(const FloatVarHeader& other);
     inline void moveotherheader(FloatVarHeader&& other);
 
@@ -80,6 +80,5 @@ namespace FVC {
       bool isnameinheap : 1;
       char params : 3;
     } mState = { 0 };
-
   };
 }
