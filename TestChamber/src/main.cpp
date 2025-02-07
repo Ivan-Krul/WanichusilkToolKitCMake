@@ -9,13 +9,16 @@
 #undef FLOAT_VAR_INDEX_GUARD
 
 int main(int args, char* argv[]) {
-  float abc[] = { -9.0f,1.2f,5.2f };
-
-  FVC::FloatVar fv(abc, 3, "abc", "aray");
-
   FVC::FloatVarDisk fvd;
-  fvd.insertFloatVar(fv);
-  fvd.save("sup.txt");
+  fvd.load("abacada.txt");
+  FVC::FloatVar fv = fvd.pullFloatVar();
+
+  std::cout << "N: " << fv.getName() << '\n';
+  std::cout << "S: " << fv.getSize() << '\n';
+
+  for (const auto& elem : fv) {
+    std::cout << "\tN: " << elem.getName() << '\n';
+  }
 
   printf("Hello from WanichusilkToolKit.TestChamber project!\n");
   return 0;

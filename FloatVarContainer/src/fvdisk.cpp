@@ -135,14 +135,14 @@ namespace FVC {
     case FloatVar::FormatType::array:
       fin.read((char*)&number, offsetlen_bytes);
       fv.reoffset(number);
-      fin.read((char*)&number, offsetlen_bytes);
+      fin.read((char*)&number, arraylen_bytes);
       fv.resize(number);
 
       buf = new char[number * fv.getOffset()];
 
       fin.read(buf, number * fv.getOffset());
 
-      fv = buf; // feeling bad
+      memcpy(fv.begin(), buf, fv.getSize() * fv.getOffset());
 
       delete[] buf;
       break;

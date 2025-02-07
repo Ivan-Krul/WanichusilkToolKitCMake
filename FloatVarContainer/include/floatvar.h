@@ -8,11 +8,20 @@
 #include "define.h"
 
 #define FLOAT_VAR_INDEX_GUARD
+#define FLOAT_VAR_ITERATOR_TYPE_GUARD
 
 #ifdef FLOAT_VAR_INDEX_GUARD
 #define ARAY_ACCESS(a,i,m) (i>=m?a[0]:a[i])
 #else
 #define ARAY_ACCESS(a,i,m) (a[i])
+#endif
+
+#ifdef FLOAT_VAR_ITERATOR_TYPE_GUARD
+#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_same?(is_begin?a:a + len):(a))
+#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_same?(is_begin?a + (len - 1):a - 1):(a))
+#else
+#define MOVE_PTR_ITERATOR(a, is_same, is_begin, len) (is_begin?a:a + len)
+#define MOVE_PTR_ITERATOR_REVERSE(a, is_same, is_begin, len) (is_begin?a + (len - 1):a - 1)
 #endif
 
 
@@ -80,6 +89,15 @@ namespace FVC {
     typename std::enable_if_t<std::is_arithmetic<T>::value> push(T that);
     void push(char that);
     void emplace(FloatVar&& that);
+
+    inline FloatVar* begin()  { return MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
+    inline FloatVar* end()    { return MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
+    inline FloatVar* rbegin() { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
+    inline FloatVar* rend()   { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
+    inline const FloatVar* cbegin()  const { return MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
+    inline const FloatVar* cend()    const { return MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
+    inline const FloatVar* crbegin() const { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
+    inline const FloatVar* crend()   const { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
 
     inline FloatVar& operator[] (halfuint index);
            const FloatVar& at(halfuint index) const;
