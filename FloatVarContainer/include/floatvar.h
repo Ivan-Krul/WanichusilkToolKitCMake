@@ -17,8 +17,6 @@ namespace FVC {
     explicit FloatVar(const char* name, DataType data_type) : FloatVarHeader(name, data_type) {}
     explicit FloatVar(const char* string  , const char* name     , DataType data_type);
     template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
-    explicit FloatVar(T number, const char* name  , DataType data_type);
-    template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
     explicit FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type);
     template<typename T, typename = typename std::enable_if_t<std::is_arithmetic<T>::value>>
     explicit FloatVar(std::initializer_list<T> list, const char* name, DataType data_type);
@@ -34,8 +32,6 @@ namespace FVC {
     inline const void const* getRawData() const { return mData.aString; }
 
     inline const char*   getString()   const { return mData.aString; }
-    template<typename T>
-    inline typename std::enable_if_t<std::is_arithmetic<T>::value, T> getNumber() const;
     
     void clear() override;
     void reserve(halfuint new_capacity);
@@ -71,9 +67,6 @@ namespace FVC {
 
     inline void reoffset(quaduint offset) { mLength.offset = offset; }
 
-    template<typename T>
-    inline typename std::enable_if_t<std::is_arithmetic<T>::value> operator=(T number);
-
            void operator=(const char* str);
            void restring(char* str, halfuint len);
 
@@ -105,14 +98,6 @@ namespace FVC {
   };
 
   template<typename T, typename>
-  FloatVar::FloatVar(T number, const char* name, DataType data_type) : FloatVarHeader(name, data_type) {
-    mLength = { sizeof(T), sizeof(T), 0, FormatType::number };
-
-    mData.number = 0;
-    memcpy(&mData.number, &number, sizeof(T));
-  }
-
-  template<typename T, typename>
   inline FloatVar::FloatVar(T* numbers, halfuint list_count, const char* name, DataType data_type) : FloatVarHeader(name, data_type) {
     mLength = {list_count, list_count, sizeof(T), FormatType::array};
     
@@ -126,11 +111,6 @@ namespace FVC {
 
     mData.aString = new char[mLength.length * sizeof(T)];
     memcpy(mData.aArray, list.begin(), mLength.length * sizeof(T));
-  }
-
-  template<typename T>
-  typename std::enable_if_t<std::is_arithmetic<T>::value, T> FloatVar::getNumber() const {
-    return isNumber() ? *((T*)&mData.number) : 0;
   }
 
   template<typename T>
@@ -152,16 +132,6 @@ namespace FVC {
   template<typename T>
   inline typename std::enable_if_t<std::is_arithmetic<T>::value, const T> FloatVar::numIndexAt(halfuint index) const {
     return ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
-  }
-
-  template<typename T>
-  inline typename std::enable_if_t<std::is_arithmetic<T>::value> FloatVar::operator=(T number) {
-    if (mLength.type != FormatType::number) return;
-
-    mData.number = 0;
-    memcpy(&mData.number, &number, sizeof(T));
-    mLength.length = sizeof(T);
-    mLength.capacity = sizeof(T);
   }
 }
 

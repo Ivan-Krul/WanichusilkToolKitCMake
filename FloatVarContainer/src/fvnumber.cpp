@@ -9,4 +9,8 @@ namespace FVC {
     case 8: mState.params = 3; break;
     }
   }
+
+  void FloatVarNumber::copyother(const FloatVarNumber& other) {
+
+  }
 }
