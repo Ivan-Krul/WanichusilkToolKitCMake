@@ -11,7 +11,7 @@ namespace FVC {
     // intependant
     inline explicit FloatVarNumber(const FloatVarNumber& other) : FloatVarHeader(other) { copyother(other); }
     // steals identity
-    inline explicit FloatVarNumber(FloatVarNumber&& other) noexcept : FloatVarHeader(other) { moveotherheader(std::move(other)); }
+    inline explicit FloatVarNumber(FloatVarNumber&& other) noexcept : FloatVarHeader(other) { moveother(std::move(other)); }
 
     template<typename T>
     inline typename std::enable_if_t<std::is_arithmetic<T>::value, T> getNumber() const;
@@ -19,19 +19,19 @@ namespace FVC {
     template<typename T>
     inline typename std::enable_if_t<std::is_arithmetic<T>::value> operator=(T number);
 
+    inline quaduint size() const { return mState.params[0]; }
+
   private:
-    void setnumbersize(quadint size);
     void copyother(const FloatVarNumber& other);
-    void moveother(FloatVarNumber&& other); // yeee
+    void moveother(FloatVarNumber&& other);
 
-    length_t mNumber = 0;
-
+    fvnumber_t mNumber;
   };
 
   template<typename T, typename>
   FloatVarNumber::FloatVarNumber(T number, const char* name, DataType data_type) : FloatVarHeader(name, data_type, FormatType::number) {
-    memcpy(&mNumber, &number, sizeof(T));
-    setnumbersize(sizeof(T));
+    std::memcpy(&mNumber, &number, sizeof(T));
+    mState.param[0] = (sizeof(T));
   }
 
   template<typename T>
@@ -41,9 +41,17 @@ namespace FVC {
 
   template<typename T>
   inline typename std::enable_if_t<std::is_arithmetic<T>::value> FloatVarNumber::operator=(T number) {
-    mNumber = 0;
-    memcpy(&mNumber, &number, sizeof(T));
-    setnumbersize(sizeof(T));
+    if (sizeof(T) != mState.params[0]) {
+      std::memcpy(&mNumber, &number, sizeof(T));
+      mState.params[0] = sizeof(T);
+      return;
+    }
+
+#ifdef USE_BIT_CAST
+    mNumber = std::bit_cast<fvnumber_t>(number);
+#else
+    std::memcpy(&mNumber, &number, sizeof(T));
+#endif
   }
 
 }

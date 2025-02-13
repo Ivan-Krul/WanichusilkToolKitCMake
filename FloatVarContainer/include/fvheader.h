@@ -76,9 +76,9 @@ namespace FVC {
 
   protected:
     struct State {
+      char params[2];
       FormatType format : 4;
       bool isnameinheap : 1;
-      char params : 3;
     } mState = { 0 };
   };
 }

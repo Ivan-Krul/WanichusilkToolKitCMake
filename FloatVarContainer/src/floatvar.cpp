@@ -65,19 +65,19 @@ namespace FVC {
   }
 
   inline FloatVar& FloatVar::operator[](halfuint index) {
-    return ARAY_ACCESS(mData.aList, index, mLength.length);
+    return FV_ARAY_ACCESS(mData.aList, index, mLength.length);
   }
 
   const FloatVar& FloatVar::at(halfuint index) const {
-    return ARAY_ACCESS(mData.aList, index, mLength.length);
+    return FV_ARAY_ACCESS(mData.aList, index, mLength.length);
   }
 
   inline char& FloatVar::strIndex(halfuint index) {
-    return ARAY_ACCESS(mData.aString, index, mLength.length);
+    return FV_ARAY_ACCESS(mData.aString, index, mLength.length);
   }
 
   inline const char FloatVar::strIndexAt(halfuint index) const {
-    return ARAY_ACCESS(mData.aString, index, mLength.length);
+    return FV_ARAY_ACCESS(mData.aString, index, mLength.length);
   }
 
   void FloatVar::operator=(const char* str) {

@@ -44,14 +44,14 @@ namespace FVC {
     void push(char that);
     void emplace(FloatVar&& that);
 
-    inline FloatVar* begin()  { return MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
-    inline FloatVar* end()    { return MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
-    inline FloatVar* rbegin() { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
-    inline FloatVar* rend()   { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
-    inline const FloatVar* cbegin()  const { return MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
-    inline const FloatVar* cend()    const { return MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
-    inline const FloatVar* crbegin() const { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
-    inline const FloatVar* crend()   const { return MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
+    inline FloatVar* begin()  { return FV_MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
+    inline FloatVar* end()    { return FV_MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
+    inline FloatVar* rbegin() { return FV_MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
+    inline FloatVar* rend()   { return FV_MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
+    inline const FloatVar* cbegin()  const { return FV_MOVE_PTR_ITERATOR(mData.aList, isList(), true, mLength.length); }
+    inline const FloatVar* cend()    const { return FV_MOVE_PTR_ITERATOR(mData.aList, isList(), false, mLength.length); }
+    inline const FloatVar* crbegin() const { return FV_MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), true, mLength.length); }
+    inline const FloatVar* crend()   const { return FV_MOVE_PTR_ITERATOR_REVERSE(mData.aList, isList(), false, mLength.length); }
 
     inline FloatVar& operator[] (halfuint index);
            const FloatVar& at(halfuint index) const;
@@ -126,12 +126,12 @@ namespace FVC {
 
   template<typename T>
   inline typename std::enable_if_t<std::is_arithmetic<T>::value, T&> FloatVar::numIndex(halfuint index) {
-    return ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
+    return FV_ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
   }
 
   template<typename T>
   inline typename std::enable_if_t<std::is_arithmetic<T>::value, const T> FloatVar::numIndexAt(halfuint index) const {
-    return ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
+    return FV_ARAY_ACCESS(((T*)mData.aArray), index, mLength.length);
   }
 }
 
